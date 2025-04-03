@@ -9,24 +9,170 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+#I. Overview 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+##What to Submit
+ • A description of your approach and the important steps.
+ • The file(s) with the R functions and the code to use those functions to read the data.
+ • A description of how you verified the results were correct with numerical summaries, tables, plots that “prove” this is
+ correct, along with a description of any manual verification you did.
+ • The R code you used to verify the results
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+##Objective: 
+For this assignment, you are to write functions that will read the data in the .clm (climate) file in each zip file into a data.frame. The resulting *data.frame should have 9 columns– the 6 columns in the data set and also the day, month and hour of each observation.*
+Write functions (rather than one or more R commands) to read each of these tables, as you need to apply these to the contents of the 5 ZIP files. Also, you will most likely need to run the code multiple times to iteratively modify it and verify it is correct. Use functions rather than repeating the same code for each file and table
 
-```{r cars}
-summary(cars)
+##Verification: Describe the approaches / processes taken to verify your findings
+
+#II. Trial Run on a Small Dataset (three days)
+
+I created a dataset taking lines 1 - 87 of the "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm" file.
+
+I treated the .clm file like a .txt file. 
+
+```{r}
+setwd("C:/cygwin64/home/vedan/Code/sta141b")
+
+lines.list <- readLines("test.clm")
+
+# Get the line number that starts each day
+# https://www.spsanderson.com/steveondata/posts/2024-09-03/
+matching_indices <- grep("* day  ", lines.list)
+print(matching_indices)
+print(lines.list[matching_indices])
+
+test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices), ncol = 9))
+colnames(test_frame) <- c('day', 'month', 'hour', 'diffuse_solar_horizontal', 'dry_bulb_temp', 'normal_solar_intensity', 'wind_speed', 'wind_direction', 'rel_humidity')
+
+start = 1
+for (i in 1:length(matching_indices)){
+  
+  # get the text contents for a particular day
+  line_index = as.integer(matching_indices[i])
+  day_info <- lines.list[line_index:(line_index+24)]
+  day_split <- strsplit(day_info[1], split = " ")
+  unlist(day_split)
+  
+  # day and month information
+  day <- as.integer(day_split[[1]][4])
+  month <- as.integer(day_split[[1]][7])
+  
+  # fill in the hour and remaining 6 columns
+  if (i == 1){start = 1}
+  else {start = (i - 1) * 24 + 1}
+  
+  stop = start + 24
+  
+  hour = 1
+  
+  # remove the first line
+  line_index = 38
+  index_plus_one = line_index + 1
+  ending_index = line_index + 24
+  data_info <- lines.list[index_plus_one:ending_index]
+  
+  line_index = 1
+  for (j in start:stop){
+    
+    test_frame[j,1] <- day
+    test_frame[j,2] <- month
+   
+    # add in the hours 
+    test_frame[j,3] <- hour
+    
+    line = strsplit(data_info[line_index], split = ',')
+
+    test_frame[j, 4] <- line[[1]][1]
+    test_frame[j, 5] <- line[[1]][2]
+    test_frame[j, 6] <- line[[1]][3]
+    test_frame[j, 7] <- line[[1]][4]
+    test_frame[j, 8] <- line[[1]][5]
+    test_frame[j, 9] <- line[[1]][6]
+  
+    line_index = line_index + 1
+    
+    }
+    
+    hour = hour + 1
+    
+  }
+  
+
 ```
+I then wrapped these steps into a function.
 
-## Including Plots
+```{r}
 
-You can also embed plots, for example:
+solar.data.frame <- function(lines.list) {
+  
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+  # find the line number that starts each day
+  
+  matching_indices <- grep("* day  ", lines.list)
+  print(matching_indices)
+  print(lines.list[matching_indices])
+  
+  test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices), ncol = 9))
+  colnames(test_frame) <- c('day', 'month', 'hour', 'diffuse_solar_horizontal', 'dry_bulb_temp', 'normal_solar_intensity', 'wind_speed', 'wind_direction', 'rel_humidity')
+  
+  start = 1
+  for (i in 1:length(matching_indices)){
+    
+    # get the text contents for a particular day
+    line_index = as.integer(matching_indices[i])
+    day_info <- lines.list[line_index:(line_index+24)]
+    day_split <- strsplit(day_info[1], split = " ")
+    unlist(day_split)
+    
+    # day and month information
+    day <- as.integer(day_split[[1]][4])
+    month <- as.integer(day_split[[1]][7])
+    
+    # fill in the hour and remaining 6 columns
+    if (i == 1){start = 1}
+    else {start = (i - 1) * 24 + 1}
+    
+    stop = start + 24
+    
+    hour = 1
+    
+    # remove the first line
+    line_index = 38
+    index_plus_one = line_index + 1
+    ending_index = line_index + 24
+    data_info <- lines.list[index_plus_one:ending_index]
+    
+    line_index = 1
+    for (j in start:stop){
+      
+      test_frame[j,1] <- day
+      test_frame[j,2] <- month
+     
+      # add in the hours 
+      test_frame[j,3] <- hour
+      
+      line = strsplit(data_info[line_index], split = ',')
+  
+      test_frame[j, 4] <- line[[1]][1]
+      test_frame[j, 5] <- line[[1]][2]
+      test_frame[j, 6] <- line[[1]][3]
+      test_frame[j, 7] <- line[[1]][4]
+      test_frame[j, 8] <- line[[1]][5]
+      test_frame[j, 9] <- line[[1]][6]
+    
+      line_index = line_index + 1
+      
+      }
+      
+      hour = hour + 1
+      
+    }
+  return(test_frame)
+}
+
+data <- readLines(unz("USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.zip", "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm"))
+
+df <- solar.data.frame("text.clm")
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 
