@@ -1,0 +1,245 @@
+---
+title: "Reading Solar Data -- Part 1"
+author: "Veda Nayak"
+date: "2025-04-01"
+output: 
+  html_document:
+    number_sections: true
+    highlight: tango
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+suppressWarnings(library(dplyr))
+suppressWarnings(library(ggplot2))
+suppressWarnings(library(kableExtra))
+
+
+```
+
+# Overview 
+
+## What to Submit
+ • A description of your approach and the important steps.
+ • The file(s) with the R functions and the code to use those functions to read the data.
+ • A description of how you verified the results were correct with numerical summaries, tables, plots that “prove” this is
+ correct, along with a description of any manual verification you did.
+ • The R code you used to verify the results
+
+## Objective: 
+For this assignment, you are to write functions that will read the data in the .clm (climate) file in each zip file into a data.frame. The resulting *data.frame should have 9 columns– the 6 columns in the data set and also the day, month and hour of each observation.*
+Write functions (rather than one or more R commands) to read each of these tables, as you need to apply these to the contents of the 5 ZIP files. Also, you will most likely need to run the code multiple times to iteratively modify it and verify it is correct. Use functions rather than repeating the same code for each file and table
+
+## Verification: Describe the approaches / processes taken to verify your findings
+Some ideas for verification:
+ • manually comparing individual values in the files and the results,
+ • computing summary statistics from the results, and
+ • visualizing the results
+ • programmatically verifying the results
+
+# Trial Run on a Small Dataset (three days)
+
+## Creating the Dataframe
+I created a dataset taking lines 1 - 87 of the "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm" file.
+
+I treated the .clm file like a .txt file FINISH
+I realized that since the data spans across several years, "day 1 month 1" repeats in the data. If we want to look at trends across data, or if we want to look at a particular day, we would not be able to do so since we do not have a unique identifier. To remedy this, I first made a column for the year, which increases if the previous month has a larger value than the current month (ex. previous month = 11 and current month = 1). By not making the condition specific to months 12 and 1, it allows for missing monthly data. 
+After determining the year, I created an column for the exact date in day-month-year format.
+
+```{r}
+setwd("C:/cygwin64/home/vedan/Code/sta141b")
+
+lines.list <- readLines("test.clm")
+
+# Get the line number that starts each day
+# https://www.spsanderson.com/steveondata/posts/2024-09-03/
+matching_indices <- grep("* day  ", lines.list)
+print(matching_indices)
+print(lines.list[matching_indices])
+
+test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices), ncol = 10))
+colnames(test_frame) <- c('day', 'month', 'hour', 'diffuse_solar_horizontal', 'dry_bulb_temp', 'normal_solar_intensity', 'wind_speed', 'wind_direction', 'rel_humidity', 'year')
+
+start = 1
+previous_month = 12
+year = 2008
+
+for (i in 1:length(matching_indices)){
+  
+  # get the text contents for a particular day
+  line_index = as.integer(matching_indices[i])
+  day_info <- lines.list[line_index:(line_index+24)]
+  day_split <- strsplit(day_info[1], split = " ")
+  unlist(day_split)
+  
+  # day and month information
+  day <- as.integer(day_split[[1]][4])
+  month <- as.integer(day_split[[1]][7])
+  
+  if (previous_month > month){year = year + 1}
+  
+  # fill in the hour and remaining 6 columns
+  if (i == 1){start = 1}
+  else {start = (i - 1) * 24 + 1}
+  
+  stop = start + 24
+  
+  hour = 0
+  
+  # remove the first line
+  line_index = 38
+  index_plus_one = line_index + 1
+  ending_index = line_index + 24
+  data_info <- lines.list[index_plus_one:ending_index]
+  
+  line_index = 1
+  for (j in start:stop){
+    
+    test_frame[j,1] <- day
+    test_frame[j,2] <- month
+    test_frame[j,10] <- year
+   
+    # add in the hours 
+    hour = hour + 1
+    test_frame[j,3] <- hour
+    
+    line = strsplit(data_info[line_index], split = ',')
+
+    test_frame[j, 4] <- line[[1]][1]
+    test_frame[j, 5] <- line[[1]][2]
+    test_frame[j, 6] <- line[[1]][3]
+    test_frame[j, 7] <- line[[1]][4]
+    test_frame[j, 8] <- line[[1]][5]
+    test_frame[j, 9] <- line[[1]][6]
+  
+    line_index = line_index + 1
+    
+    }
+    
+    previous_month = month
+  }
+  
+test_frame$exact_date <- interaction(test_frame$day, test_frame$month, test_frame$year, sep = '-')
+
+```
+I got the following dataframe:
+
+```{r}
+head(test_frame)
+```
+
+
+## Validating the Dataframe {.tabset}
+
+I did several things to validate my dataframe was correct:
+• Check if the temperature rises in the day and falls in the night
+• Is the number of rows consistent with what one would expect for three days worth of information
+• Is there the correct number of hours in each day's report
+
+### Graph the data across the hour
+
+
+```{r}
+temp.by.hours.scatter <- ggplot(test_frame, aes(x = hour, y = dry_bulb_temp, color = exact_date)) +
+                                           geom_point() +
+                                           labs(title = "Dry Bulb Temperature vs. Hours in a Day",
+                                                xlab = "Hour",
+                                                ylab = "Dry Bulb Temperature",
+                                                fill = "Date") +
+                                            facet_wrap(~ exact_date)
+temp.by.hours.scatter
+```
+
+
+
+# Implementation on the Dataset
+I then wrapped these steps into a function.
+
+```{r}
+
+solar.data.frame <- function(lines.list) {
+  
+
+  # find the line number that starts each day
+  
+  matching_indices <- grep("* day  ", lines.list)
+  print(matching_indices)
+  print(lines.list[matching_indices])
+  
+  test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices), ncol = 9))
+  colnames(test_frame) <- c('day', 'month', 'hour', 'diffuse_solar_horizontal', 'dry_bulb_temp', 'normal_solar_intensity', 'wind_speed', 'wind_direction', 'rel_humidity')
+  
+  start = 1
+  for (i in 1:length(matching_indices)){
+    
+    # get the text contents for a particular day
+    line_index = as.integer(matching_indices[i])
+    day_info <- lines.list[line_index:(line_index+24)]
+    day_split <- strsplit(day_info[1], split = " ")
+    unlist(day_split)
+    
+    # day and month information
+    day <- as.integer(day_split[[1]][4])
+    month <- as.integer(day_split[[1]][7])
+    
+    # fill in the hour and remaining 6 columns
+    if (i == 1){start = 1}
+    else {start = (i - 1) * 24 + 1}
+    
+    stop = start + 24
+    
+    hour = 1
+    
+    # remove the first line
+    line_index = 38
+    index_plus_one = line_index + 1
+    ending_index = line_index + 24
+    data_info <- lines.list[index_plus_one:ending_index]
+    
+    line_index = 1
+    for (j in start:stop){
+      
+      test_frame[j,1] <- day
+      test_frame[j,2] <- month
+     
+      # add in the hours 
+      test_frame[j,3] <- hour
+      
+      line = strsplit(data_info[line_index], split = ',')
+  
+      test_frame[j, 4] <- line[[1]][1]
+      test_frame[j, 5] <- line[[1]][2]
+      test_frame[j, 6] <- line[[1]][3]
+      test_frame[j, 7] <- line[[1]][4]
+      test_frame[j, 8] <- line[[1]][5]
+      test_frame[j, 9] <- line[[1]][6]
+    
+      line_index = line_index + 1
+      
+      }
+      
+      hour = hour + 1
+      
+    }
+  return(test_frame)
+}
+
+```
+
+
+```{r} 
+knitr::opts_knit$set(root.dir = './')
+
+files <- list.files(path="./Solar1", pattern=".zip$")
+
+outDir <- "./Solar1/unzip"
+for (i in files) {
+  unzip(paste("./Solar1",i), exdir=outDir)
+}
+```
+
+# Discussion in Class
+- In this case you could unzip them manually if you want, it's all chill.
