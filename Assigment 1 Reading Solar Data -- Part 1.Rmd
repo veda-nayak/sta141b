@@ -12,11 +12,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
-suppressWarnings(library(dplyr))
-suppressWarnings(library(ggplot2))
-suppressWarnings(library(kableExtra))
-
+source("C:/cygwin64/home/vedan/Code/sta141b/assignment1code.R")
 
 ```
 
@@ -46,71 +42,7 @@ Some ideas for verification:
 I created a dataset taking lines 1 - 137 of the "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm" file.
 
 ```{r}
-setwd("C:/cygwin64/home/vedan/Code/sta141b")
-fn = "test.clm"
-tf = "testText.clm"
 
-# Start of fixed width columns
-ColStarts = c(1, 7, 9, 16)
-
-# SMALLER FUNCTIONS
-getBlocks =  # get the grouped lines
-function(lines.list)
-{
-  # find the starts and ends
-    starts = substring(lines.list, 1, 6) == "* day "
-    ends = rep(FALSE, length(starts))
-    ends[which(starts)+24] <- TRUE
-    
-  # group the lines based on blocks between trues
-    w = starts | ends
-    g = cumsum(w)
-    ans = split(lines.list, g)
-    names(ans) = sapply(ans, `[`, 1)
-    ans
-}
-
-getTables = # make the block tables into a list
-    # this calls getBlocks() and gets the resulting elements
-    # whose names start with "* day "
-function(lines.list)
-{
-    block = getBlocks(lines.list)
-    w = substring(names(b), 1, 6) == "* day "
-    block[w]
-}
-
-readTableData = 
-function(tt, colStarts = ColStarts, widths = c(diff(colStarts), nchar(tt[1])), numTables)
-{
-    # First read the values in the table, and ignore the header/column names (first line)
-    firstLine = tt[1]
-    # pass a textConnection() to read.fwf since we are n asking
-    # it to read a file but to process the contents we have alread read.
-    con = textConnection(firstLine)
-    ans = read.fwf(con, widths)
-    
-    day <- ans[2]
-    month <- ans[4]
-
-    dataLines = tt[-1]
-    
-    numTables
-    
-}
-
-readNCBITables2 = # read table data >hours 1-24 for each day
-    # Top-level/starting function
-function(file, colStarts = ColStarts)
-{
-    lines.list = readLines(file) # get me the lines
-    tables = getTables(lines.list) # get me tables
-    numTables = length(tables)
-    ans = lapply(tables, readTableData, colStarts) # read those tables
-}
-
-
-print(readNCBITables2(fn))
     
   
 ```
