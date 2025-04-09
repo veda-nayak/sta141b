@@ -43,24 +43,284 @@ Some ideas for verification:
 # Trial Run on a Small Dataset (three days)
 
 ## Creating the Dataframe
-I created a dataset taking lines 1 - 87 of the "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm" file.
+I created a dataset taking lines 1 - 137 of the "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm" file.
 
+```{r}
+setwd("C:/cygwin64/home/vedan/Code/sta141b")
+fn = "test.clm"
+tf = "testText.clm"
+
+# Start of fixed width columns
+ColStarts = c(1, 7, 9, 16)
+
+# SMALLER FUNCTIONS
+getBlocks =  # get the grouped lines
+function(lines.list)
+{
+  # find the starts and ends
+    starts = substring(lines.list, 1, 6) == "* day "
+    ends = rep(FALSE, length(starts))
+    ends[which(starts)+24] <- TRUE
+    
+  # group the lines based on blocks between trues
+    w = starts | ends
+    g = cumsum(w)
+    ans = split(lines.list, g)
+    names(ans) = sapply(ans, `[`, 1)
+    ans
+}
+
+getTables = # make the block tables into a list
+    # this calls getBlocks() and gets the resulting elements
+    # whose names start with "* day "
+function(lines.list)
+{
+    block = getBlocks(lines.list)
+    w = substring(names(b), 1, 6) == "* day "
+    block[w]
+}
+
+readTableData = 
+function(tt, colStarts = ColStarts, widths = c(diff(colStarts), nchar(tt[1])), numTables)
+{
+    # First read the values in the table, and ignore the header/column names (first line)
+    firstLine = tt[1]
+    # pass a textConnection() to read.fwf since we are n asking
+    # it to read a file but to process the contents we have alread read.
+    con = textConnection(firstLine)
+    ans = read.fwf(con, widths)
+    
+    day <- ans[2]
+    month <- ans[4]
+
+    dataLines = tt[-1]
+    
+    numTables
+    
+}
+
+readNCBITables2 = # read table data >hours 1-24 for each day
+    # Top-level/starting function
+function(file, colStarts = ColStarts)
+{
+    lines.list = readLines(file) # get me the lines
+    tables = getTables(lines.list) # get me tables
+    numTables = length(tables)
+    ans = lapply(tables, readTableData, colStarts) # read those tables
+}
+
+
+print(readNCBITables2(fn))
+    
+  
+```
+I got the following dataframe:
+
+```{r}
+head(test_frame)
+```
+
+
+## Validating the Dataframe
+
+I did several things to validate my dataframe was correct:
+• Is the number of rows consistent with what one would expect for three days worth of information
+• Is there the correct number of hours in each day's report
+• Check if the temperature rises in the day and falls in the night
+
+### Number of Rows and Columns
+FINISH
+
+### Number of Hours
+FINISH
+
+### Graph the data across the hour
+
+```{r}
+temp.by.hours.scatter <- ggplot(test_frame, aes(x = hour, y = dry_bulb_temp, color = exact_date)) +
+                                           geom_point() +
+                                           labs(title = "Dry Bulb Temperature vs. Hours in a Day",
+                                                xlab = "Hour",
+                                                ylab = "Dry Bulb Temperature",
+                                                fill = "Date") +
+                                            facet_wrap(~ exact_date)
+temp.by.hours.scatter
+```
+FINISH
+
+# Implementation on the Dataset
+I then wrapped these steps into a function.
+
+```{r}
+
+solar.data.frame <- function(fn) {
+
+lines.list <- readLines(fn)
+
+# Get the line number that starts each day
+matching_indices <- grep("day  ", lines.list)
+print(matching_indices)
+print(lines.list[matching_indices])
+
+test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices)-1, ncol = 10))
+colnames(test_frame) <- c('day', 'month', 'hour', 'diffuse_solar_horizontal', 'dry_bulb_temp', 'normal_solar_intensity', 'wind_speed', 'wind_direction', 'rel_humidity', 'year')
+
+start = 1
+previous_month = 12
+year = 2008
+
+for (i in 1:length(matching_indices)){
+  print(matching_indices[i])
+  # get the text contents for a particular day
+  line_index = as.integer(matching_indices[i])
+  day_info <- lines.list[line_index:(line_index+24)]
+  day_split <- strsplit(day_info[1], split = " ")
+  unlist(day_split)
+  
+  # day and month information
+  day <- as.integer(day_split[[1]][4])
+  month <- as.integer(day_split[[1]][7])
+  print(day_split)
+  print(month)
+  
+  if (previous_month > month){year = year + 1}
+  
+  # fill in the hour and remaining 6 columns
+  if (i == 1){
+    start = 1
+    stop = 24
+    }
+  else {
+    start = (i - 1) * 24 + 1
+    stop = start + 23
+    }
+  
+  hour = 0
+  
+  # remove the first line
+  # line_index = matching_indices[i]
+  # index_plus_one = line_index + 1
+  # ending_index = line_index + 24
+  # data_info <- lines.list[index_plus_one:ending_index]
+  
+  line_index = 1
+  for (j in start:stop){
+    
+    test_frame[j,1] <- day
+    test_frame[j,2] <- month
+    test_frame[j,10] <- year
+   
+    if (hour == 24){break}
+    
+    # add in the hours 
+    hour = hour + 1
+    
+    test_frame[j,3] <- hour
+    
+    line = strsplit(data_info[line_index], split = ',')
+
+    test_frame[j, 4] <- line[[1]][1]
+    test_frame[j, 5] <- line[[1]][2]
+    test_frame[j, 6] <- line[[1]][3]
+    test_frame[j, 7] <- line[[1]][4]
+    test_frame[j, 8] <- line[[1]][5]
+    test_frame[j, 9] <- line[[1]][6]
+  
+    line_index = line_index + 1
+    
+    }
+    
+    previous_month = month
+  }
+  
+test_frame$exact_date <- interaction(test_frame$day, test_frame$month, test_frame$year, sep = '-')
+text_frame$location <- tools::file_path_sans_ext(fn)
+return(test_frame)
+}
+
+```
+
+Add all .clm files into a list. These files were taken from manually extracted directories containing the solar data.  
+
+ISSUE WITH CODE: IT IS A FIXED WIDTH SITUATION, NOT A SIMPLE STRING SPLIT SITUATION
+```{r} 
+setwd("C:/cygwin64/home/vedan/Code/sta141b/Solar1/unzip")
+fn = "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm"
+files <- list.files(path="C:/cygwin64/home/vedan/Code/sta141b/Solar1/unzip", pattern="clm")
+
+```
+Running the function over the files
+
+```{r}
+
+
+```
+
+
+
+# Discussion in Class
+- In this case you could unzip them manually if you want, it's all chill.
+- For verificiation you can also look to see if there are expected missing values
+- Look at location / elevation + plot it accordingly if you would like
+- How did I extract the blocks of data + how did I read each one
+- Possibly make a bunch of small functions hm
+- Explain iteration process (bottom up process)
+- Check each column is the right class
+
+```{r}
+
+# vector for starts and stops
+starts = which(w)
+ends = which(w2)
+
+for (i in 1:length(start)){
+  
+  ll[starts[i]:ends[i]]
+  
+}
+
+# OR 
+z = mapply(function(i,j), starts, ends, SIMPLIFY = TRUE) # a little bit more general than a forloop
+# mapply takes two vectors and returns f(x, y)
+# lapply takes a vector, applies a function, and returns a vector
+
+# OR
+
+# compare the two vectors, if either w or w2 is true return true
+w3 = w | w2
+which(w3) # --> list of starts and stops [5, 112, 2323, 2430], expected
+cumsum(w3) # cumulative sum, work on entire vectors, adds numbers [ False --> 0, True --> 1]
+# 0 0 0 0 1 [inside table you keep adding 0 to 1] 1 1 1 ... 2 [ end of alignment] ... 3[next table] ... 4 [ end of next table ]
+
+# 'These lines are in group 1, these are in group 2...' just group the lines by number
+
+g = split(ll, cumsum(w3)) # give me categories for each element
+# easier than counting indices in tables
+
+# odd numbers will be the tables we want
+
+# NOW WE'VE EXTRACTED THE LINES FOR EACH TABLE
+
+tbl = g[[2]]
+con = textConnection(tbl[-(1:4)]) # treat my text as a file please
+
+
+
+```
+
+Old
 I treated the .clm file like a .txt file FINISH
 I realized that since the data spans across several years, "day 1 month 1" repeats in the data. If we want to look at trends across data, or if we want to look at a particular day, we would not be able to do so since we do not have a unique identifier. To remedy this, I first made a column for the year, which increases if the previous month has a larger value than the current month (ex. previous month = 11 and current month = 1). By not making the condition specific to months 12 and 1, it allows for missing monthly data. 
 After determining the year, I created an column for the exact date in day-month-year format.
 
 ```{r}
-setwd("C:/cygwin64/home/vedan/Code/sta141b")
-
-lines.list <- readLines("test.clm")
-
 # Get the line number that starts each day
 # https://www.spsanderson.com/steveondata/posts/2024-09-03/
 matching_indices <- grep("* day  ", lines.list)
 print(matching_indices)
 print(lines.list[matching_indices])
 
-test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices), ncol = 10))
+test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices)-1, ncol = 10))
 colnames(test_frame) <- c('day', 'month', 'hour', 'diffuse_solar_horizontal', 'dry_bulb_temp', 'normal_solar_intensity', 'wind_speed', 'wind_direction', 'rel_humidity', 'year')
 
 start = 1
@@ -82,15 +342,19 @@ for (i in 1:length(matching_indices)){
   if (previous_month > month){year = year + 1}
   
   # fill in the hour and remaining 6 columns
-  if (i == 1){start = 1}
-  else {start = (i - 1) * 24 + 1}
-  
-  stop = start + 24
+  if (i == 1){
+    start = 1
+    stop = 24
+    }
+  else {
+    start = (i - 1) * 24 + 1
+    stop = start + 23
+    }
   
   hour = 0
   
   # remove the first line
-  line_index = 38
+  line_index = matching_indices[i]
   index_plus_one = line_index + 1
   ending_index = line_index + 24
   data_info <- lines.list[index_plus_one:ending_index]
@@ -102,8 +366,11 @@ for (i in 1:length(matching_indices)){
     test_frame[j,2] <- month
     test_frame[j,10] <- year
    
+    if (hour == 24){break}
+    
     # add in the hours 
     hour = hour + 1
+    
     test_frame[j,3] <- hour
     
     line = strsplit(data_info[line_index], split = ',')
@@ -123,123 +390,8 @@ for (i in 1:length(matching_indices)){
   }
   
 test_frame$exact_date <- interaction(test_frame$day, test_frame$month, test_frame$year, sep = '-')
-
-```
-I got the following dataframe:
-
-```{r}
-head(test_frame)
+test_frame$location <- tools::file_path_sans_ext(fn)
+# https://stackoverflow.com/questions/29113973/get-filename-without-extension-in-r
+=
 ```
 
-
-## Validating the Dataframe {.tabset}
-
-I did several things to validate my dataframe was correct:
-• Check if the temperature rises in the day and falls in the night
-• Is the number of rows consistent with what one would expect for three days worth of information
-• Is there the correct number of hours in each day's report
-
-### Graph the data across the hour
-
-
-```{r}
-temp.by.hours.scatter <- ggplot(test_frame, aes(x = hour, y = dry_bulb_temp, color = exact_date)) +
-                                           geom_point() +
-                                           labs(title = "Dry Bulb Temperature vs. Hours in a Day",
-                                                xlab = "Hour",
-                                                ylab = "Dry Bulb Temperature",
-                                                fill = "Date") +
-                                            facet_wrap(~ exact_date)
-temp.by.hours.scatter
-```
-
-
-
-# Implementation on the Dataset
-I then wrapped these steps into a function.
-
-```{r}
-
-solar.data.frame <- function(lines.list) {
-  
-
-  # find the line number that starts each day
-  
-  matching_indices <- grep("* day  ", lines.list)
-  print(matching_indices)
-  print(lines.list[matching_indices])
-  
-  test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices), ncol = 9))
-  colnames(test_frame) <- c('day', 'month', 'hour', 'diffuse_solar_horizontal', 'dry_bulb_temp', 'normal_solar_intensity', 'wind_speed', 'wind_direction', 'rel_humidity')
-  
-  start = 1
-  for (i in 1:length(matching_indices)){
-    
-    # get the text contents for a particular day
-    line_index = as.integer(matching_indices[i])
-    day_info <- lines.list[line_index:(line_index+24)]
-    day_split <- strsplit(day_info[1], split = " ")
-    unlist(day_split)
-    
-    # day and month information
-    day <- as.integer(day_split[[1]][4])
-    month <- as.integer(day_split[[1]][7])
-    
-    # fill in the hour and remaining 6 columns
-    if (i == 1){start = 1}
-    else {start = (i - 1) * 24 + 1}
-    
-    stop = start + 24
-    
-    hour = 1
-    
-    # remove the first line
-    line_index = 38
-    index_plus_one = line_index + 1
-    ending_index = line_index + 24
-    data_info <- lines.list[index_plus_one:ending_index]
-    
-    line_index = 1
-    for (j in start:stop){
-      
-      test_frame[j,1] <- day
-      test_frame[j,2] <- month
-     
-      # add in the hours 
-      test_frame[j,3] <- hour
-      
-      line = strsplit(data_info[line_index], split = ',')
-  
-      test_frame[j, 4] <- line[[1]][1]
-      test_frame[j, 5] <- line[[1]][2]
-      test_frame[j, 6] <- line[[1]][3]
-      test_frame[j, 7] <- line[[1]][4]
-      test_frame[j, 8] <- line[[1]][5]
-      test_frame[j, 9] <- line[[1]][6]
-    
-      line_index = line_index + 1
-      
-      }
-      
-      hour = hour + 1
-      
-    }
-  return(test_frame)
-}
-
-```
-
-
-```{r} 
-knitr::opts_knit$set(root.dir = './')
-
-files <- list.files(path="./Solar1", pattern=".zip$")
-
-outDir <- "./Solar1/unzip"
-for (i in files) {
-  unzip(paste("./Solar1",i), exdir=outDir)
-}
-```
-
-# Discussion in Class
-- In this case you could unzip them manually if you want, it's all chill.
