@@ -38,157 +38,82 @@ Some ideas for verification:
 
 # Trial Run on a Small Dataset (three days)
 
-## Creating the Dataframe
-I created a dataset taking lines 1 - 137 of the "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm" file.
+I created a dataset taking lines 1 - 137 of the "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm" file so that I could work with a smaller dataset. 
+
+In addition to the columns given in the prompt, I included a column for the exact date (day_month) and for the location to uniquely identify each row when working with the dataframes later.
+
+To make one table from one file, I created the following functions (some of which were adapted from lecture):
+
+ • *fileName*: Make the complete filepath name from the filename
+ • *getBlocks*: Get the line blocks that correspond to the data for one day
+      - Get grouped start and ending line indices for the blocks. The start of the block is found by searching for "* day ". The end of the line is found by adding 24 to that value
+      - The cumsum function is applied to the logical or of the start and stop pairs to get the line blocks
+ • *getTables*: 
+ • *makeTables*:
+ • *readTableData*: 
+ • *splitDataLines*: 
 
 ```{r}
-
-    
+table <- makeTables(fn)
+head(table)
   
 ```
-I got the following dataframe:
 
-```{r}
-head(test_frame)
+# Generating dataframes from the actual dataset
+
+```{r echo=FALSE}
+setwd("C:/cygwin64/home/vedan/Code/sta141b/Solar1/unzip")
+files <- list.files(path="C:/cygwin64/home/vedan/Code/sta141b/Solar1/unzip", pattern="clm")
+files <- lapply(files, fileName)
+df_list = lapply(files, makeTables)
+df_merged <- mergeTables(df_list)
+
+df = as.data.frame(df_list[1])
+    colnames(df) <- dfNames
+    
+    for (i in 2:length(df_list)){
+      
+      addition <- as.data.frame(df_list[i])
+      colnames(addition) <- dfNames
+      df <- bind_rows(df, addition)
+      
+    }
+
+df
+
+head(df_merged)
+tail(df_merged)
 ```
 
 
 ## Validating the Dataframe
 
 I did several things to validate my dataframe was correct:
-• Is the number of rows consistent with what one would expect for three days worth of information
-• Is there the correct number of hours in each day's report
+• Determine if we have an expected number of rows and columns
 • Check if the temperature rises in the day and falls in the night
 
 ### Number of Rows and Columns
-FINISH
-
-### Number of Hours
-FINISH
+Since we have 5 locations, 365 days per location, and 24 hours per day, the total number of rows we would expect is 5 * 365 * 24 = 43,800 rows
 
 ### Graph the data across the hour
+I made a function to 
 
 ```{r}
-temp.by.hours.scatter <- ggplot(test_frame, aes(x = hour, y = dry_bulb_temp, color = exact_date)) +
-                                           geom_point() +
-                                           labs(title = "Dry Bulb Temperature vs. Hours in a Day",
-                                                xlab = "Hour",
-                                                ylab = "Dry Bulb Temperature",
-                                                fill = "Date") +
-                                            facet_wrap(~ exact_date)
-temp.by.hours.scatter
+
+tempByDayScatter <-  ggplot(df_merged, aes(x = hour, y = dry_bulb_temp, color = location)) +
+      geom_point() +
+      labs(title = "Dry Bulb Temperature vs. Hours in a Day",
+           xlab = "Hour",
+           ylab = "Dry Bulb Temperature",
+           fill = "Date") +
+      facet_wrap(~ day_month)
+
 ```
 FINISH
 
-# Implementation on the Dataset
-I then wrapped these steps into a function.
+# Acknowledgments
 
-```{r}
-
-solar.data.frame <- function(fn) {
-
-lines.list <- readLines(fn)
-
-# Get the line number that starts each day
-matching_indices <- grep("day  ", lines.list)
-print(matching_indices)
-print(lines.list[matching_indices])
-
-test_frame <- as.data.frame(matrix(0, nrow = 24*length(matching_indices)-1, ncol = 10))
-colnames(test_frame) <- c('day', 'month', 'hour', 'diffuse_solar_horizontal', 'dry_bulb_temp', 'normal_solar_intensity', 'wind_speed', 'wind_direction', 'rel_humidity', 'year')
-
-start = 1
-previous_month = 12
-year = 2008
-
-for (i in 1:length(matching_indices)){
-  print(matching_indices[i])
-  # get the text contents for a particular day
-  line_index = as.integer(matching_indices[i])
-  day_info <- lines.list[line_index:(line_index+24)]
-  day_split <- strsplit(day_info[1], split = " ")
-  unlist(day_split)
-  
-  # day and month information
-  day <- as.integer(day_split[[1]][4])
-  month <- as.integer(day_split[[1]][7])
-  print(day_split)
-  print(month)
-  
-  if (previous_month > month){year = year + 1}
-  
-  # fill in the hour and remaining 6 columns
-  if (i == 1){
-    start = 1
-    stop = 24
-    }
-  else {
-    start = (i - 1) * 24 + 1
-    stop = start + 23
-    }
-  
-  hour = 0
-  
-  # remove the first line
-  # line_index = matching_indices[i]
-  # index_plus_one = line_index + 1
-  # ending_index = line_index + 24
-  # data_info <- lines.list[index_plus_one:ending_index]
-  
-  line_index = 1
-  for (j in start:stop){
-    
-    test_frame[j,1] <- day
-    test_frame[j,2] <- month
-    test_frame[j,10] <- year
-   
-    if (hour == 24){break}
-    
-    # add in the hours 
-    hour = hour + 1
-    
-    test_frame[j,3] <- hour
-    
-    line = strsplit(data_info[line_index], split = ',')
-
-    test_frame[j, 4] <- line[[1]][1]
-    test_frame[j, 5] <- line[[1]][2]
-    test_frame[j, 6] <- line[[1]][3]
-    test_frame[j, 7] <- line[[1]][4]
-    test_frame[j, 8] <- line[[1]][5]
-    test_frame[j, 9] <- line[[1]][6]
-  
-    line_index = line_index + 1
-    
-    }
-    
-    previous_month = month
-  }
-  
-test_frame$exact_date <- interaction(test_frame$day, test_frame$month, test_frame$year, sep = '-')
-text_frame$location <- tools::file_path_sans_ext(fn)
-return(test_frame)
-}
-
-```
-
-Add all .clm files into a list. These files were taken from manually extracted directories containing the solar data.  
-
-ISSUE WITH CODE: IT IS A FIXED WIDTH SITUATION, NOT A SIMPLE STRING SPLIT SITUATION
-```{r} 
-setwd("C:/cygwin64/home/vedan/Code/sta141b/Solar1/unzip")
-fn = "USA_CA_Mammoth.Yosemite.AP.723894_TMYx.2009-2023.clm"
-files <- list.files(path="C:/cygwin64/home/vedan/Code/sta141b/Solar1/unzip", pattern="clm")
-
-```
-Running the function over the files
-
-```{r}
-
-
-```
-
-
+[Extracting the filename from the file path in the 'makeTables' function]("https://stackoverflow.com/questions/2548815/find-file-name-from-full-file-path")
 
 # Discussion in Class
 - In this case you could unzip them manually if you want, it's all chill.

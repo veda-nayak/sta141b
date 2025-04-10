@@ -13,6 +13,17 @@ tf = "testText.clm"
 # Start of fixed width columns
 ColStarts = c(1, 7, 9, 16)
 
+# Names for the dataframe columns
+dfNames <- c('day', 
+  'month', 
+  'hour', 
+  'diffuse_solar_horizontal', 
+  'dry_bulb_temp', 
+  'normal_solar_intensity', 
+  'wind_speed', 
+  'wind_direction', 
+  'rel_humidity')
+
 # SMALLER FUNCTIONS
 getBlocks =  # get the grouped lines
   function(lines.list)
@@ -50,7 +61,7 @@ readTableData =
   function(tt, colStarts = ColStarts, widths = c(diff(colStarts), nchar(tt[1])), numTables)
   {
     # CREATE THE DATAFRAME
-    df <- as.data.frame(matrix(0, 24, ncol = 10))
+    df <- as.data.frame(matrix(0, 24, ncol = 9))
     colnames(df) <- c('day', 
                       'month', 
                       'hour', 
@@ -59,8 +70,7 @@ readTableData =
                       'normal_solar_intensity', 
                       'wind_speed', 
                       'wind_direction', 
-                      'rel_humidity', 
-                      'location')
+                      'rel_humidity')
     
     # DAY AND MONTH INFORMATION
     firstLine = tt[1] # we want to work with the first line to get the day / month information
@@ -94,14 +104,11 @@ readTableData =
     
     df$day_month <- interaction(df$day, df$month, sep = '-')
     
+    as.data.frame(df)
+    
 
   }
 
-addLocation = function(file, df) {
-
-  df$location <- tools::file_path_sans_ext(file)
-  
-  }
 
 makeTables = # read table data >hours 1-24 for each day
   # Top-level/starting function
@@ -111,7 +118,48 @@ makeTables = # read table data >hours 1-24 for each day
     tables = getTables(lines.list) # get me tables
     numTables = length(tables)
     ans = lapply(tables, readTableData, colStarts) # read those tables
-    df 
     
+    df <- mergeTables(ans)
+  #   df = as.data.frame(ans[1])
+  #   colnames(df) <- dfNames
+  #   
+  #   for (i in 2:length(ans)){
+  #     
+  #     addition <- as.data.frame(ans[i])
+  #     colnames(addition) <- dfNames
+  #     df <- bind_rows(df, addition)
+  #     
+  #   }
+  #   
+  #   df
+  #   df$location <- basename(file)
+  #   colnames(df)[colnames(df) == '...10'] <- 'day_month'
+  #   df
+  #   
+  }
+
+fileName = 
+  function(name){
+    
+    paste("C:/cygwin64/home/vedan/Code/sta141b/Solar1/unzip/", name, sep = "")
+    
+  }
+
+mergeTables = 
+  function(df.list){
+    
+    df = as.data.frame(df.list[1])
+    colnames(df) <- dfNames
+    
+    for (i in 2:length(df.list)){
+      
+      addition <- as.data.frame(df.list[i])
+      colnames(addition) <- dfNames
+      df <- bind_rows(df, addition)
+      
+    }
+
+  df
+
   }
 
