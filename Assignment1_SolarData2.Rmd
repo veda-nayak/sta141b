@@ -1,0 +1,50 @@
+---
+title: "Reading Solar Data -- Part 1"
+author: "Veda Nayak"
+date: "2025-04-01"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE)
+dir = "C:/cygwin64/home/vedan/Code/sta141b/"
+source(paste(dir, "/assignment1part2functions.R", sep = ""))
+
+```
+
+# Overview
+The goal of this assignment is to extract information from the climate data in the .stat files and generate four tables.
+ •Average Hourly Statistics for Opaque Sky Cover
+    - Three columns: Month, Hour, Temperature
+    Max Temp, Min Temp, Day of Max Temp, Day of Min Temp, Day of Min, Hour of Min
+     - 288 Rows: One for each month * hours in a day
+ •Psychrometric Chart Data
+    - Two columns: Dewpoint, Dry Bulb Temperature
+ •Monthly Statistics for Relative Humidity
+     - 10 Columns: Month, Daily Average, Daytime Average, Nightime Average, Max Temp, Min Temp, Day of Max Temp, Day of Min Temp, Day of Min, Hour of Min
+     - 12 Rows: One for each month
+ •Monthly Statistics for Solar Radiation
+     - X Columns: 
+
+# PART 2 
+
+## Step 1: Extract lines of text corresponding to the tables
+I first created functions that would help me extract the tables I needed (their respective lines). I created the following functions in this pursuit. 
+ • getBlocks: Creates blocks of text that start with " - " and end at the line before the next " - ".
+ • tableStarts: Uses the getBlocks() and findTitles() functionsinds the block indices corresponding to the start of the tables we are interested in.
+ • findTitles: Uses grepl() to checks if a given block corresponds to a table we are after.
+ • getTables: Uses the getBlocks() and tableStarts() functions to extract all the lines needed for the respective tables.
+ 
+
+# Validation
+- Class of dataframe
+- Converting character --> numerical if applicable
+
+# Acknowledgments
+
+# Notes for class
+- Write the functions in a separate file
+- Write application of code w/ echo = TRUE in markdown
+- Find Globals could show you where there is a variable you're using but isn't defined, do merge = false
+
+
