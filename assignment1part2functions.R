@@ -3,17 +3,22 @@
 suppressWarnings(library(dplyr))
 suppressWarnings(library(ggplot2))
 suppressWarnings(library(gridExtra))
+suppressWarnings(library(reshape2))
+suppressWarnings(library(data.table))
+suppressWarnings(library(janitor))
 
 # Set working directory + bring in test files ----------------------------------
 
 dir = "C:/cygwin64/home/vedan/Code/sta141b/"
 
-setwd(paste(dir, "/Solar1/unzip", sep = ""))
+wd = paste(dir, "/Solar1/unzip", sep = "")
 
-# - find all lines w/ " - " = first line, last line will be the next " - "
+setwd(wd)
+
+# Get the correct tables -------------------------------------------------------
 
 getBlocks = # make all blocks
-  # Uses: findTitles
+            # Uses: findTitles
   function(ll){
     starts = substring(ll, 1, 3) == " - "
     
@@ -55,7 +60,7 @@ findTitles= # Find the blocks that we are interested in
       x = TRUE
     }
     x
-    # [findTables()function](https://stackoverflow.com/questions/10128617/test-if-characters-are-in-a-string)
+    # CITE [findTables()function](https://stackoverflow.com/questions/10128617/test-if-characters-are-in-a-string)
   }
 
 getTables = # Get the tables we are after
@@ -71,4 +76,196 @@ getTables = # Get the tables we are after
     }
     
     correct_blocks
+  }
+
+# Monthly Statistics for Relative Humidity -------------------------------------
+getHumid =  # Generate the table in one function
+            # Uses: getTables() and 'reshape2' package
+  function(ll){
+    tables = getTables(ll)
+    
+    humid_txt = tables[[1]][-1] 
+    # make it into a text connection since we're using text
+    con = textConnection(humid_txt) 
+    humid_raw_data = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
+    
+    humid_raw_data <- humid_raw_data[,2:14]
+    
+    # Make the maximum + minimum day:hour values more specific
+    humid_data[2, 1] <- "Maximum_Day:Hour"
+    humid_data[4, 1] <- "Minimum_Day:Hour"
+    
+    # change column name to make it more logical for later transformations
+    colnames(humid_data)[1] <- "Month"
+    
+    # make the months into their own row
+    new_row <- colnames(humid_data)
+    humid_data[8,] <- new_row
+    
+    humid_data_transposed <- transpose(humid_data)
+    # CITE [Transpose Data](https://community.sisense.com/t5/cdt/transposing-tables-in-r-and-python/ta-p/9361)
+    
+    humid_data_transposed <- humid_data_transposed %>% row_to_names(row_number = 1)
+    # CITE
+    
+    humid_data_transposed$max_day <- NA
+    humid_data_transposed$max_hour <- NA
+    humid_data_transposed$min_day <- NA
+    humid_data_transposed$min_hour <- NA
+    
+    # Remove whitespace
+    humid_data_transposed$`Minimum_Day:Hour` <- gsub('\\s+', '', humid_data_transposed$`Minimum_Day:Hour`)
+    humid_data_transposed$`Maximum_Day:Hour` <- gsub('\\s+', '', humid_data_transposed$`Maximum_Day:Hour`)
+    
+    row_num = as.numeric(dim(humid_data_transposed)[1])
+    
+    for (i in seq(from=1, to=row_num, by=1)){
+      
+      max_split = unlist(strsplit(humid_data_transposed[i, 2], split = ":"))
+      
+      humid_data_transposed[i, 9] <- max_split[1] # max day
+      humid_data_transposed[i, 10] <- max_split[2] # max hour
+      
+      min_split = unlist(strsplit(humid_data_transposed[i, 4], split = ":"))
+      
+      humid_data_transposed[i, 11] <- min_split[1] # min day
+      humid_data_transposed[i, 12] <- min_split[2] # min hour
+      
+    }
+    
+    humid_data_transposed <- humid_data_transposed[-c(2, 4)]
+    humid_data_transposed_month <- humid_data_transposed[6]
+    
+    humid_data_transposed_numeric <- sapply( humid_data_transposed[c(1:5, 7:9)], as.numeric )
+    
+    humid_data_transposed <- bind_cols(humid_data_transposed_month, humid_data_transposed_numeric)
+    
+  }
+
+
+# Monthly Statistics for Solar Radiation   -------------------------------------
+getSolarRad = # Generate the table in one function
+              # Uses: getTables() and 'reshape2' package
+  function(ll){
+    tables = getTables(ll)
+    solar_rad_txt = tables[[2]][-1] 
+    
+    # make it into a text connection since we're using text
+    con = textConnection(solar_rad_txt) 
+    solar_rad_data = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
+    
+    solar_rad_data <- solar_rad_data[,2:14]
+    
+    # make massive table
+    colnames(solar_rad_data)[1] <- "Month"
+    solar_rad_data[3, 1] <- "Direct_Max_Day"
+    
+    # make the months into their own row
+    new_row <- colnames(solar_rad_data)
+    solar_rad_data[6,] <- new_row
+    
+    solar_rad_data_transposed <- transpose(solar_rad_data)
+    
+    solar_rad_data_transposed <- solar_rad_data_transposed %>% row_to_names(row_number = 1)
+    
+    solar_rad_data_transposed_month <- solar_rad_data_transposed[6]
+    
+    solar_rad_data_transposed_numeric <- sapply( solar_rad_data_transposed[c(1:5)], as.numeric )
+    
+    solar_rad_data_transposed <- bind_cols(solar_rad_data_transposed_month, solar_rad_data_transposed_numeric)
+    
+    solar_rad_data_transposed
+    
+  }
+
+
+# Average Hourly Statistics for Opaque Sky Cover -------------------------------
+getAvgHourSkyCover = # Generate the table in one function
+                     # Uses: getTables() and 'reshape2' package
+  function(ll){
+
+    tables = getTables(ll)
+    # select the correct table
+    # based on standerd location in the file so hard-coding 3 is OK
+    ave_hour_txt = tables[[3]][-1] 
+    # make it into a text connection since we're using text
+    con = textConnection(ave_hour_txt) 
+    ave_hour_txt_raw_data = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
+    # CITE [Generating a table from a .tsv file](https://stackoverflow.com/questions/51177077/reading-a-tab-separated-file-in-r)
+    
+    # tidy up table
+    ave_hour_txt_raw_data <- ave_hour_txt_raw_data[,2:14]
+    ave_hour_txt_raw_data <- ave_hour_txt_raw_data[1:24,]
+    colnames(ave_hour_txt_raw_data)[1] = "hour"
+    
+    hours <- seq(1, 24)
+    ave_hour_txt_raw_data$hour <- hours
+    
+    
+    #make massive table
+    ave_hour_sky_cover <- as.data.frame(melt(ave_hour_txt_raw_data, id = 'hour'))
+    colnames(ave_hour_sky_cover) <- c('hour', 'month', 'percent_covered')
+    
+    ave_hour_sky_cover$hour <- gsub('\\s+', '', ave_hour_sky_cover$hour)
+    
+    
+    ave_hour_sky_cover
+    
+  }
+
+# Psychrometric Chart Data -----------------------------------------------------
+
+# FINISH - The column labels are not correct
+getPsyched = # Generate the table in one function
+  # Uses: getTables() and 'reshape2' package 
+  # (I could possibly consolidate these functions since they have similar elements... 
+  # but I think it is simplier for me to organize them like this LOL)
+  function(ll){
+    tables = getTables(ll)
+    
+    # select the correct table
+    # based on standerd location in the file so hard-coding 3 is OK
+    psych_txt = tables[[4]][-1] 
+    # make it into a text connection since we're using text
+    con = textConnection(psych_txt) 
+    psych_txt_raw_data = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
+    
+    # tidy up table
+    psych_txt_raw_data <- psych_txt_raw_data[,2:13]
+    
+    # might cause problems if you have something in the last column might want to fix it
+    colnames(psych_txt_raw_data) <- c('dewpoint', '<=-10','<=-5', "<=0", "<=5", "<=10",	"<=15",	"<=20", "<=25",	"<=30", "<=35", "<=40")
+    
+    #make massive table
+    psych_chart <- as.data.frame(melt(psych_txt_raw_data, id = 'dewpoint'))
+    # CITE [melt() function 'id' input](https://ademos.people.uic.edu/Chapter8.html)
+    colnames(psych_chart) <- c('dewpoint', 'dry_bulb', 'temp')
+    psych_chart <- na.omit(psych_chart)
+    psych_chart
+  }
+
+# List of Dataframes -----------------------------------------------------------
+
+getDataframes = # Outputs a list of dataframes in this order:
+                # rel_humid, solar_rad, ave_hour_sky_cover, psych_chart
+  function(fn){
+    
+    fp = paste(wd, fn, sep = "/")
+    
+    ll = readLines(fn, encoding = "latin1") # lines.list
+    
+    rel_humid = getHumid(ll)
+    rel_humid$location <- fn
+    
+    solar_rad = getSolarRad(ll)
+    solar_rad$location <- fn
+    
+    ave_hour_sky_cover = getAvgHourSkyCover(ll)
+    ave_hour_sky_cover$location <- fn
+    
+    psych_chart = getPsyched(ll)
+    psych_chart$location <- fn
+    
+    df_list <- list(rel_humid, solar_rad, ave_hour_sky_cover, psych_chart)
+    
   }
