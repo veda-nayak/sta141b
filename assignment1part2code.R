@@ -82,10 +82,10 @@ humid_data_transposed <- transpose(humid_data)
 humid_data_transposed <- humid_data_transposed %>% row_to_names(row_number = 1)
 # CITE
 
-humid_data_transposed$max_day <- NA
-humid_data_transposed$max_hour <- NA
-humid_data_transposed$min_day <- NA
-humid_data_transposed$min_hour <- NA
+# humid_data_transposed$max_day <- NA
+# humid_data_transposed$max_hour <- NA
+# humid_data_transposed$min_day <- NA
+# humid_data_transposed$min_hour <- NA
 
 # Remove whitespace
 humid_data_transposed$`Minimum_Day:Hour` <- gsub('\\s+', '', humid_data_transposed$`Minimum_Day:Hour`)
@@ -94,26 +94,19 @@ humid_data_transposed$`Maximum_Day:Hour` <- gsub('\\s+', '', humid_data_transpos
 row_num = as.numeric(dim(humid_data_transposed)[1])
 
 max_split = strsplit(humid_data_transposed$`Maximum_Day:Hour`, split = ":")
-max_day = sapply(string, `[`, 1)
-max_hour = sapply(string, `[`, 2)
 
-for (i in seq(from=1, to=row_num, by=1)){
-  
-  max_split = unlist(strsplit(humid_data_transposed[i, 2], split = ":"))
-  
-  humid_data_transposed[i, 9] <- max_split[1] # max day
-  humid_data_transposed[i, 10] <- max_split[2] # max hour
-  
-  min_split = unlist(strsplit(humid_data_transposed[i, 4], split = ":"))
-  
-  humid_data_transposed[i, 11] <- min_split[1] # min day
-  humid_data_transposed[i, 12] <- min_split[2] # min hour
-  
-}
+day_hour = sapply(max_split, function(x) as.integer(x[c(1,2)]))
+
+day_hour = t(day_hour)
+
+day_hour = as.data.frame(day_hour)
+day_hour
+colnames(day_hour) <- c('Day', 'Hour')
 
 humid_data_transposed <- humid_data_transposed[-c(2, 4)]
 humid_data_transposed_month <- humid_data_transposed[6]
 
-humid_data_transposed_numeric <- sapply( humid_data_transposed[c(1:5, 7:9)], as.numeric )
+humid_data_transposed_numeric[] <- lapply(humid_data_transposed[c(1:5, 7:9)], as.numeric )
+# add the [] to subset by nothing, into the existing table, replace the contents of the df to retain the df
 
-humid_data_transposed <- bind_cols(humid_data_transposed_month, humid_data_transposed_numeric)
+humid_data_transposed <- bind_cols(humid_data_transposed_month, humid_data_transposed_numeric, day_hour)
