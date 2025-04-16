@@ -8,7 +8,7 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 dir = "C:/cygwin64/home/vedan/Code/sta141b/"
-source(paste(dir, "/assignment1part2functions.R", sep = ""))
+source(paste(dir, "/assignment1part2code.R", sep = ""))
 
 ```
 
@@ -49,15 +49,19 @@ I worked with the "USA_CA_UC-Davis-University.AP.720576_TMYx.2009-2023.stat" dat
 - getSolarRad: "Monthly Statistics for Solar Radiation" dataframe generation
 
 The workflow for the *getHumid* and *getSolarRad* is as such:
-1. Use getTables() to get a list of tables.
+
+ 1. Use getTables() to get a list of tables.
  2. Extract the table I was after. 
 - Since the order of the tables was location specific on the document, and there was a consistant ordering of tables, getTables() outputs the files in this order: "Monthly Statistics for Relative Humidity", "Monthly Statistics for Solar Radiation", "Average Hourly Statistics for Opaque Sky Cover", "Psychrometric Chart Data". I extracted the correct table based on the numerical positioning in the tables list. 
  3. Transfer the lines to a text connection to make it workable when using the read.delim() function.
  4. Use read.delim() to import the lines into a dataframe. The lines use tab separation.
- 
- # FINISH
+ 5. Make the 'Day' columns more specific
+ 6. Make a row that contains the months
+ 7. Transpose the data
+ 8. SKIP IN *getSolarRad*: Split the Day:Hour column by the ':' and add the result into a new column
 
 The workflow for the *getPsyched* and *getAvgHourSkyCount* is as such:
+
  1. Use getTables() to get a list of tables.
  2. Extract the table I was after. 
 - Since the order of the tables was location specific on the document, and there was a consistant ordering of tables, getTables() outputs the files in this order: "Monthly Statistics for Relative Humidity", "Monthly Statistics for Solar Radiation", "Average Hourly Statistics for Opaque Sky Cover", "Psychrometric Chart Data". I extracted the correct table based on the numerical positioning in the tables list. 
@@ -73,24 +77,6 @@ I put all four dataframe generation functions into a function that would output 
 
 - getDataframes: Generate a list of the four data frames I am interested in for this assignment. 
 
-```{r echo=TRUE}
-knitr::opts_chunk$set(include = FALSE)
-dir = "C:/cygwin64/home/vedan/Code/sta141b/"
-source(paste(dir, "/assignment1part2functions.R", sep = ""))
-
-files <- list.files(path="C:/cygwin64/home/vedan/Code/sta141b/Solar1/unzip", pattern="stat")
-df_list = lapply(files, getDataframes)
-getDataframes(files[1])
-yosemite_humid = df_list[[1]][[1]]
-yosemite_solar_rad = df_list[[1]][[2]]
-yosemite_sky_cov = df_list[[1]][[3]]
-yosemite_psych = df_list[[1]][[4]]
-
-yosemite_humid
-
-# traceback(x = NULL, max.lines = getOption("deparse.max.lines"))
-
-```
 
 ## Generated Dataframes
 
@@ -98,13 +84,14 @@ Since I developed the functions using the Davis data, I wanted to validate my re
 
 Yosemite - Monthly Statistics for Relative Humidity:
 ```{r echo=TRUE}
-yosemite_humid
+head(yosemite_humid)
 ```
 
 
 Yosemite - Monthly Statistics for Relative Solar Radiation:
 ```{r echo=TRUE}
-yosemite_solar_rad
+head(yosemite_solar_rad)
+
 ```
 
 
@@ -117,14 +104,12 @@ tail(yosemite_sky_cov)
 Yosemite - Psychrometric Chart Data
 
 ```{r echo=TRUE}
-yosemite_psych
+head(yosemite_psych)
 ```
 
 
 
 # Validation
-- Class of dataframe
-- Converting character --> numerical if applicable
 
 ## Monthly Statistics for Relative Humidity
 
@@ -133,14 +118,14 @@ yosemite_psych
 *Check if the output is a dataframe:* 
 
 ```{r}
-class(yosemite_humid)
+humid_class 
 ```
 The output is a dataframe. 
 
 
 *Check if dimensions align with expectations:*
 ```{r, Yosemite Monthly Statistics for Relative Humidity}
-dim(yosemite_humid)
+dim_humid
 ```
 We expected an 12 x 11 dataframe, so this dataframe aligns with our expectations. 
 
@@ -149,59 +134,23 @@ We expected an 12 x 11 dataframe, so this dataframe aligns with our expectations
 I wanted to confirm that the month and location were a character type vectors and that all others were integer vectors. 
 
 ```{r}
-sapply(yosemite_humid, function(x) class(x[c(1:dim(yosemite_humid)[2])]))
+humid_classes
 ```
 All columns have a class consistant with what we expected
 
 ### Graph Data to Gauge Validity
 
 ```{r}
-davis_humid = df_list[[5]][[1]]
-
-library(tidyverse)
-
-# make a long form of the data to see differences between the max and mins across the months
-# yes this does negate some of the data manipulation I did in my functions
-long_humidity_yosemite <- yosemite_humid %>% pivot_longer(!c("Month", "location"), names_to = "measurement", values_to = "value")
-
-long_humidity_yosemite_no_hour <- long_humidity_yosemite %>% filter(measurement != 'Max_Day') %>% filter(measurement != 'Min_Day') %>% filter(measurement != 'Min_Hour') %>% filter(measurement != 'Max_Hour')
-
-yosemite_humid_graph_humidity_readings = ggplot(long_humidity_yosemite_no_hour, aes(x = Month,
-                                                              y = value,
-                                                              color = measurement, 
-                                                              group = measurement)) +
-                      geom_point() +
-                      geom_line()+
-                      labs(title = "Yosemite - Monthly Statistics for Relative Humidity",
-                           x = "Month",
-                           y = "Percent Humidity", 
-                           fill = 'Measurement') + 
-                      theme_minimal() 
 
 yosemite_humid_graph_humidity_readings
 
 ```
 The maximum humidity is consistently greater than the minimum humidity, which is logical. 
 The daily average seems to sit right in the middle of the DayTime and NightTime averages, which is logical. 
+The humidity dips in the summer months which is logical since it is generally less wet / hotter in the summer. 
+
 
 ```{r}
-
-yosemite_humid_only_hour <- yosemite_humid[c('Month', 'Max_Hour', 'Min_Hour')]
-
-long_humidity_yosemite_only_hour <- yosemite_humid_only_hour %>% pivot_longer(!c("Month"), names_to = "measurement", values_to = "value")
-
-yosemite_humid_graph_hour_readings = ggplot(long_humidity_yosemite_only_hour, aes(x = Month,
-                                                              y = value,
-                                                              color = measurement, 
-                                                              group = measurement)) +
-                      geom_point() +
-                      geom_line()+
-                      labs(title = "Yosemite - Average Hour Where the Daily Max and Min Humidity was Observed",
-                           x = "Month",
-                           y = "Hour", 
-                           fill = 'Corresponding Hour') + 
-                      theme_minimal() 
-
 yosemite_humid_graph_hour_readings
 ```
 The hour that corresponds to the maximum humidity is at night. This is consistent with the data in the previous graph showing that the nighttime average was higher than the daytime average. 
@@ -212,14 +161,14 @@ The hour that corresponds to the maximum humidity is at night. This is consisten
 *Check if the output is a dataframe:* 
 
 ```{r}
-class(yosemite_humid)
+class_solar 
 ```
 The output is a dataframe. 
 
 
 *Check if dimensions align with expectations:*
 ```{r}
-dim(yosemite_solar_rad)
+dim_solar 
 ```
 We expected an 12 x 7 dataframe, so this dataframe aligns with our expectations. 
 
@@ -227,33 +176,42 @@ We expected an 12 x 7 dataframe, so this dataframe aligns with our expectations.
 I wanted to confirm that the month and location were a character type vectors and that all others were integer vectors. 
 
 ```{r}
-sapply(yosemite_humid, function(x) class(x[c(1:dim(yosemite_humid)[2])]))
+solar_classes 
 ```
 All columns have a class consistent with what we expected.
 
+
 ### Graph Data to Gauge Validity
+
+
+```{r}
+yosemite_solar_rad_graph
+```
+The maximum humidity is consistently greater than the minimum humidity, which is logical. 
+The daily average seems to sit right in the middle of the DayTime and NightTime averages, which is logical. 
+The solar radiation increases in the summer months which is logical since it is sunnier in the summer (more solar radiation). 
 
 
 ## Average Hourly Statistics for Opaque Sky Cover
 *Check if the output is a dataframe:* 
 
 ```{r}
-class(yosemite_humid)
+class_sky 
 ```
 The output is a dataframe. 
 
 
 *Check if dimensions align with expectations:*
 ```{r}
-dim(yosemite_sky_cov)
+dim_sky
 ```
 We expected an 288 x 4 dataframe, so this dataframe aligns with our expectations. 
 
 *Check Column Type*
-I wanted to confirm that the month and location were a character type vectors and that all others were integer vectors. 
+I wanted to confirm that the month and location were a character type vectors, the percent covered was numeric, and the month was a factor or character vector. 
 
 ```{r}
-sapply(yosemite_humid, function(x) class(x[c(1:dim(yosemite_humid)[2])]))
+sky_classes
 ```
 All columns have a class consistent with what we expected.
 
@@ -261,23 +219,10 @@ All columns have a class consistent with what we expected.
 
 I thought comparing the sky coverage data to Davis would help contextualize my results. 
 ```{r}
-davis_sky_cov = df_list[[5]][[3]]
-
-yosemite_davis_sky_cov <- bind_rows(yosemite_sky_cov, davis_sky_cov)
-
-yosemite_davis_sky_cov_graph = ggplot(yosemite_davis_sky_cov, aes(x = month, 
-                                                            y = percent_covered, 
-                                                            color = location)) +
-                      geom_point() +
-                      labs(title = "Yosemite: Average Hourly Statistics for Opaque Sky Cover",
-                           x = "Month",
-                           y = "Opaque Sky Cover Percentage") + 
-                      theme_minimal() +
-                      geom_smooth()
-
 yosemite_davis_sky_cov_graph
 ```
 Yosemite consistently has higher sky coverage percentages as compared to Davis. This makes sense since Yosemite experiences more snow and rain than Davis does, especially in the summer months. 
+The percent opaque sky cover also decreases in the summer months, which makes sense considering that it is generally sunnier (less cloud coverage) in the summer. 
 
 
 
@@ -286,14 +231,14 @@ Yosemite consistently has higher sky coverage percentages as compared to Davis. 
 *Check if the output is a dataframe:* 
 
 ```{r}
-class(yosemite_humid)
+class_psych 
 ```
 The output is a dataframe. 
 
 
 *Check if dimensions align with expectations:*
 ```{r}
-dim(yosemite_psych)
+dim_psych
 ```
 We expected an 40 x 4 dataframe, so this dataframe aligns with our expectations. 
 
@@ -301,25 +246,25 @@ We expected an 40 x 4 dataframe, so this dataframe aligns with our expectations.
 I wanted to confirm that the month and location were a character type vectors, the temperature was a numeric vector, and that the dewpoint and dry_bulb columns were charecter / factor vectors. 
 
 ```{r}
-sapply(yosemite_psych, function(x) class(x[c(1:dim(yosemite_psych)[2])]))
+psych_classes
 ```
-All columns have a class consistent with what we expected
+All columns have a class consistent with what we expected.
 
 ### Graph Data to Gauge Validity
 
+```{r}
+yosemite_psych_graph
+```
+
 
 # Acknowledgments
+
 [Step 2 - Step 6, transforming the data: melt() function in 'reshape2' library]("https://stackoverflow.com/questions/32390886/i-want-to-turn-column-names-into-an-identifying-column-in-r")
+
 [Step 2: Removeing whitespace in the Relative Humidity dataframe]("https://stackoverflow.com/questions/34591329/remove-white-space-from-a-data-frame-column-and-add-path")
-[Validation - Connecting points in ggplot]('https://stackoverflow.com/questions/8592585/combine-points-with-lines-with-ggplot2')
 
-# Questions
-- How can I make the psychometric data more general when there are missing values in the table
-- Why is my output not showing cry
+[Validation - Connecting points in ggplot]("https://stackoverflow.com/questions/8592585/combine-points-with-lines-with-ggplot2")
 
-# Notes for class
-- Write the functions in a separate file
-- Write application of code w/ echo = TRUE in markdown
-- Find Globals could show you where there is a variable you're using but isn't defined, do merge = false
+[Validation - Ordering the x-axis]("https://stackoverflow.com/questions/12774210/how-do-you-specifically-order-ggplot2-x-axis-instead-of-alphabetical-order")
 
 

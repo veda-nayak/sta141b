@@ -234,7 +234,7 @@ getPsyched = # Generate the table in one function
     #make massive table
     psych_chart <- as.data.frame(melt(psych_txt_raw_data, id = 'dewpoint'))
     # CITE [melt() function 'id' input](https://ademos.people.uic.edu/Chapter8.html)
-    colnames(psych_chart) <- c('dewpoint', 'dry_bulb', 'temp')
+    colnames(psych_chart) <- c('dewpoint', 'dry_bulb', 'percent')
     psych_chart <- na.omit(psych_chart)
     psych_chart
   }
