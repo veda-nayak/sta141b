@@ -87,9 +87,9 @@ getHumid =  # Generate the table in one function
     humid_txt = tables[[1]][-1] 
     # make it into a text connection since we're using text
     con = textConnection(humid_txt) 
-    humid_raw_data = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
+    humid_data = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
     
-    humid_raw_data <- humid_raw_data[,2:14]
+    humid_data <- humid_data[,2:14]
     
     # Make the maximum + minimum day:hour values more specific
     humid_data[2, 1] <- "Maximum_Day:Hour"
@@ -102,44 +102,38 @@ getHumid =  # Generate the table in one function
     new_row <- colnames(humid_data)
     humid_data[8,] <- new_row
     
-    humid_data_transposed <- transpose(humid_data)
-    # CITE [Transpose Data](https://community.sisense.com/t5/cdt/transposing-tables-in-r-and-python/ta-p/9361)
     
+    humid_data_transposed <- as.data.frame(t(humid_data))
+
     humid_data_transposed <- humid_data_transposed %>% row_to_names(row_number = 1)
     # CITE
-    
-    humid_data_transposed$max_day <- NA
-    humid_data_transposed$max_hour <- NA
-    humid_data_transposed$min_day <- NA
-    humid_data_transposed$min_hour <- NA
     
     # Remove whitespace
     humid_data_transposed$`Minimum_Day:Hour` <- gsub('\\s+', '', humid_data_transposed$`Minimum_Day:Hour`)
     humid_data_transposed$`Maximum_Day:Hour` <- gsub('\\s+', '', humid_data_transposed$`Maximum_Day:Hour`)
     
-    row_num = as.numeric(dim(humid_data_transposed)[1])
+    max_split = strsplit(humid_data_transposed$`Maximum_Day:Hour`, split = ":")
+    max_day_hour = sapply(max_split, function(x) as.integer(x[c(1,2)]))
+    max_day_hour = t(max_day_hour)
+    max_day_hour = as.data.frame(max_day_hour)
+    colnames(max_day_hour) <- c('Max_Day', 'Max_Hour')
     
-    for (i in seq(from=1, to=row_num, by=1)){
-      
-      max_split = unlist(strsplit(humid_data_transposed[i, 2], split = ":"))
-      
-      humid_data_transposed[i, 9] <- max_split[1] # max day
-      humid_data_transposed[i, 10] <- max_split[2] # max hour
-      
-      min_split = unlist(strsplit(humid_data_transposed[i, 4], split = ":"))
-      
-      humid_data_transposed[i, 11] <- min_split[1] # min day
-      humid_data_transposed[i, 12] <- min_split[2] # min hour
-      
-    }
+    min_split = strsplit(humid_data_transposed$`Minimum_Day:Hour`, split = ":")
+    min_day_hour = sapply(min_split, function(x) as.integer(x[c(1,2)]))
+    min_day_hour = t(min_day_hour)
+    min_day_hour = as.data.frame(min_day_hour)
+    colnames(min_day_hour) <- c('Min_Day', 'Min_Hour')
     
-    humid_data_transposed <- humid_data_transposed[-c(2, 4)]
-    humid_data_transposed_month <- humid_data_transposed[6]
+    humid_data_transposed_month <- humid_data_transposed$Month
+    humid_data_transposed <- humid_data_transposed[-c(2, 4, 8)]
     
-    humid_data_transposed_numeric <- sapply( humid_data_transposed[c(1:5, 7:9)], as.numeric )
+    humid_data_transposed_numeric <- sapply(humid_data_transposed, as.integer)
     
-    humid_data_transposed <- bind_cols(humid_data_transposed_month, humid_data_transposed_numeric)
+    humid_data_transposed <- bind_cols(humid_data_transposed_month, humid_data_transposed_numeric, max_day_hour, min_day_hour)
     
+    colnames(humid_data_transposed)[1] <- "Month"
+    
+    humid_data_transposed
   }
 
 
@@ -155,6 +149,7 @@ getSolarRad = # Generate the table in one function
     solar_rad_data = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
     
     solar_rad_data <- solar_rad_data[,2:14]
+    colnames(solar_rad_data)[1] = "hour"
     
     # make massive table
     colnames(solar_rad_data)[1] <- "Month"
@@ -164,15 +159,15 @@ getSolarRad = # Generate the table in one function
     new_row <- colnames(solar_rad_data)
     solar_rad_data[6,] <- new_row
     
-    solar_rad_data_transposed <- transpose(solar_rad_data)
-    
+    solar_rad_data_transposed <- as.data.frame(t(solar_rad_data))
     solar_rad_data_transposed <- solar_rad_data_transposed %>% row_to_names(row_number = 1)
     
     solar_rad_data_transposed_month <- solar_rad_data_transposed[6]
-    
     solar_rad_data_transposed_numeric <- sapply( solar_rad_data_transposed[c(1:5)], as.numeric )
     
     solar_rad_data_transposed <- bind_cols(solar_rad_data_transposed_month, solar_rad_data_transposed_numeric)
+    
+    rownames(solar_rad_data_transposed) <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
     
     solar_rad_data_transposed
     
@@ -183,27 +178,27 @@ getSolarRad = # Generate the table in one function
 getAvgHourSkyCover = # Generate the table in one function
                      # Uses: getTables() and 'reshape2' package
   function(ll){
-
+    
     tables = getTables(ll)
     # select the correct table
     # based on standerd location in the file so hard-coding 3 is OK
     ave_hour_txt = tables[[3]][-1] 
     # make it into a text connection since we're using text
     con = textConnection(ave_hour_txt) 
-    ave_hour_txt_raw_data = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
+    ave_hour_txt = read.delim(con, header = TRUE, stringsAsFactors = FALSE, quote = "", sep = "\t")
     # CITE [Generating a table from a .tsv file](https://stackoverflow.com/questions/51177077/reading-a-tab-separated-file-in-r)
     
     # tidy up table
-    ave_hour_txt_raw_data <- ave_hour_txt_raw_data[,2:14]
-    ave_hour_txt_raw_data <- ave_hour_txt_raw_data[1:24,]
-    colnames(ave_hour_txt_raw_data)[1] = "hour"
+    ave_hour_txt <- ave_hour_txt[,2:14]
+    ave_hour_txt <- ave_hour_txt[1:24,]
+    colnames(ave_hour_txt)[1] = "hour"
     
     hours <- seq(1, 24)
-    ave_hour_txt_raw_data$hour <- hours
+    ave_hour_txt$hour <- hours
     
     
     #make massive table
-    ave_hour_sky_cover <- as.data.frame(melt(ave_hour_txt_raw_data, id = 'hour'))
+    ave_hour_sky_cover <- as.data.frame(melt(ave_hour_txt, id = 'hour'))
     colnames(ave_hour_sky_cover) <- c('hour', 'month', 'percent_covered')
     
     ave_hour_sky_cover$hour <- gsub('\\s+', '', ave_hour_sky_cover$hour)
@@ -267,5 +262,6 @@ getDataframes = # Outputs a list of dataframes in this order:
     psych_chart$location <- fn
     
     df_list <- list(rel_humid, solar_rad, ave_hour_sky_cover, psych_chart)
+    df_list
     
   }
