@@ -210,7 +210,6 @@ getAvgHourSkyCover = # Generate the table in one function
 
 # Psychrometric Chart Data -----------------------------------------------------
 
-# FINISH - The column labels are not correct
 getPsyched = # Generate the table in one function
   # Uses: getTables() and 'reshape2' package 
   # (I could possibly consolidate these functions since they have similar elements... 
@@ -265,3 +264,33 @@ getDataframes = # Outputs a list of dataframes in this order:
     df_list
     
   }
+
+# Long Dataframes --------------------------------------------------------------
+
+makeLongHumid = 
+  function(df){
+    
+    long_humidity_yosemite <- df %>% pivot_longer(!c("Month", "location"), names_to = "measurement", values_to = "value")
+    
+    long_humidity_yosemite_no_hour <- long_humidity_yosemite %>% filter(measurement != 'Max_Day') %>% filter(measurement != 'Min_Day') %>% filter(measurement != 'Min_Hour') %>% filter(measurement != 'Max_Hour')
+    
+    long_humidity_yosemite_no_hour$Month <- as.character(long_humidity_yosemite_no_hour$Month)
+    long_humidity_yosemite_no_hour$Month  <- factor(long_humidity_yosemite_no_hour$Month , levels=unique(long_humidity_yosemite_no_hour$Month))
+    long_humidity_yosemite_no_hour$Month <- factor(long_humidity_yosemite_no_hour$Month , levels=c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'))
+    
+    long_humidity_yosemite_no_hour
+    
+  }
+
+makeLongSolar = 
+  function(df){
+
+long_df <- df %>% pivot_longer(!c("Month", "location"), names_to = "measurement", values_to = "value") %>% filter( measurement != "Direct_Max_Day" )
+
+long_df$Month <- as.character(long_df$Month)
+long_df$Month  <- factor(long_df$Month , levels=unique(df$Month))
+long_df$Month <- factor(long_df$Month , levels=c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'))
+
+long_df
+
+}

@@ -1,12 +1,13 @@
 ---
 title: "Reading Solar Data -- Part 2"
 author: "Veda Nayak"
-date: "2025-04-16"
+date: "2025-04-17"
 output: pdf_document
+        
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 dir = "C:/cygwin64/home/vedan/Code/sta141b/"
 source(paste(dir, "/assignment1part2code.R", sep = ""))
 
@@ -30,7 +31,7 @@ The goal of this assignment is to extract information from the climate data in t
   
 I also added a "location" column to each file to make it easier to orient the viewer / person working with the data.
 
-# PART 2 
+# Creating the Dataframes
 
 ## Step 1: Extract lines of text corresponding to the tables
 I first created functions that would help me extract the tables I needed (their respective lines). I created the following functions in this pursuit. 
@@ -58,7 +59,12 @@ The workflow for the *getHumid* and *getSolarRad* is as such:
  5. Make the 'Day' columns more specific
  6. Make a row that contains the months
  7. Transpose the data
- 8. SKIP IN *getSolarRad*: Split the Day:Hour column by the ':' and add the result into a new column
+ 8. Make columns for the max/min day & hour ( SKIP IN *getSolarRad* )
+ - Split the Day:Hour column by the ':' and add the results into a vector
+ - Convert the resulting values into integers
+ - Make a dataframe with two columns, one for the hour and one for the day
+ 9. Make a dataframe with the month information and one for the remaining values (converted to integers)
+ 10. Bind the month, day/hour, and numeric dataframes to create the final dataframe
 
 The workflow for the *getPsyched* and *getAvgHourSkyCount* is as such:
 
@@ -76,34 +82,37 @@ The workflow for the *getPsyched* and *getAvgHourSkyCount* is as such:
 I put all four dataframe generation functions into a function that would output a list of dataframes to make it easier to apply across a list of files. 
 
 - getDataframes: Generate a list of the four data frames I am interested in for this assignment. 
+    - Note: The lists are ordered (list 1 in the output wil lalways be the humidity graph)
+    - Note: The order the files goes in dictates the order in which you can extract the information (ex. the first list in the output will correspond to the first file in the vecctor containing all the lists)
 
 
 ## Generated Dataframes
 
-Since I developed the functions using the Davis data, I wanted to validate my results using data from another location. I chose to look at the Yosemite dataset for validation. 
+Since I developed the functions using the Davis data, I wanted to validate my results using data from another location. I chose to look at the Yosemite dataset for validation. I am assuming that since I am working with a dataset that I didn't generate the code from, and that all the files follow the same structure, doing data validation on just one file is sufficient. 
+
 
 Yosemite - Monthly Statistics for Relative Humidity:
-```{r echo=TRUE}
+```{r}
 head(yosemite_humid)
 ```
 
 
 Yosemite - Monthly Statistics for Relative Solar Radiation:
-```{r echo=TRUE}
+```{r }
 head(yosemite_solar_rad)
 
 ```
 
 
 Yosemite - Average Hourly Statistics for Opaque Sky Cover:
-```{r echo=TRUE}
+```{r}
 head(yosemite_sky_cov)
 tail(yosemite_sky_cov)
 ```
 
 Yosemite - Psychrometric Chart Data
 
-```{r echo=TRUE}
+```{r}
 head(yosemite_psych)
 ```
 
@@ -124,13 +133,15 @@ The output is a dataframe.
 
 
 *Check if dimensions align with expectations:*
-```{r, Yosemite Monthly Statistics for Relative Humidity}
+
+```{r}
 dim_humid
 ```
 We expected an 12 x 11 dataframe, so this dataframe aligns with our expectations. 
 
 
 *Check Column Type*
+
 I wanted to confirm that the month and location were a character type vectors and that all others were integer vectors. 
 
 ```{r}
@@ -156,6 +167,14 @@ yosemite_humid_graph_hour_readings
 The hour that corresponds to the maximum humidity is at night. This is consistent with the data in the previous graph showing that the nighttime average was higher than the daytime average. 
 
 
+I then wanted to compare the data across al the dataframes.
+
+```{r}
+all_humid_graph
+```
+In this graph, only San Deigo and Argullo do not match the pattern previously observed. After comparing this graph to the  data in the original file, this graph depicting the information correctly for all of the files. 
+
+
 ## Monthly Statistics for Relative Solar Radiation
 
 *Check if the output is a dataframe:* 
@@ -167,12 +186,14 @@ The output is a dataframe.
 
 
 *Check if dimensions align with expectations:*
+
 ```{r}
 dim_solar 
 ```
 We expected an 12 x 7 dataframe, so this dataframe aligns with our expectations. 
 
 *Check Column Type*
+
 I wanted to confirm that the month and location were a character type vectors and that all others were integer vectors. 
 
 ```{r}
@@ -192,6 +213,15 @@ The daily average seems to sit right in the middle of the DayTime and NightTime 
 The solar radiation increases in the summer months which is logical since it is sunnier in the summer (more solar radiation). 
 
 
+I then checked to see if this pattern holds up with the rest of the files. 
+
+```{r}
+all_solar_rad_graph
+```
+
+In this graph, only San Deigo does not match the pattern previously observed. After comparing this graph to the data in the original file, this graph depicting the information correctly for all of the files.
+
+
 ## Average Hourly Statistics for Opaque Sky Cover
 *Check if the output is a dataframe:* 
 
@@ -202,12 +232,14 @@ The output is a dataframe.
 
 
 *Check if dimensions align with expectations:*
+
 ```{r}
 dim_sky
 ```
 We expected an 288 x 4 dataframe, so this dataframe aligns with our expectations. 
 
 *Check Column Type*
+
 I wanted to confirm that the month and location were a character type vectors, the percent covered was numeric, and the month was a factor or character vector. 
 
 ```{r}
@@ -224,6 +256,13 @@ yosemite_davis_sky_cov_graph
 Yosemite consistently has higher sky coverage percentages as compared to Davis. This makes sense since Yosemite experiences more snow and rain than Davis does, especially in the summer months. 
 The percent opaque sky cover also decreases in the summer months, which makes sense considering that it is generally sunnier (less cloud coverage) in the summer. 
 
+I then checked to see if this pattern holds up with the rest of the files. 
+
+```{r}
+all_sky_cov_graph
+```
+
+In this graph, only San Deigo and Argullo do not match the pattern previously observed. After comparing this graph to the  data in the original file, this graph depicting the information correctly for all of the files. 
 
 
 ## Psychrometric Chart Data
@@ -237,12 +276,14 @@ The output is a dataframe.
 
 
 *Check if dimensions align with expectations:*
+
 ```{r}
 dim_psych
 ```
 We expected an 40 x 4 dataframe, so this dataframe aligns with our expectations. 
 
 *Check Column Type*
+
 I wanted to confirm that the month and location were a character type vectors, the temperature was a numeric vector, and that the dewpoint and dry_bulb columns were charecter / factor vectors. 
 
 ```{r}
@@ -255,16 +296,25 @@ All columns have a class consistent with what we expected.
 ```{r}
 yosemite_psych_graph
 ```
+Thee dry bulb temperature is always higher than the dew point temperature if there is not 100% humidity. This graph seems legitimate because there are no points where dew point is lower than the dry bulb and the rough positive correlation to this graph. 
+
+I then looked at this data across all dataframes. 
+
+```{r}
+all_psych_graph
+```
+These graphs all follow the same pattern perviously observed. 
 
 
 # Acknowledgments
+*I wasn't able to get the hyperlinks to work :(*
+Creating the Dataframes - Step 6, transforming the data: melt() function in 'reshape2' library : "https://stackoverflow.com/questions/32390886/i-want-to-turn-column-names-into-an-identifying-column-in-r")
 
-[Step 2 - Step 6, transforming the data: melt() function in 'reshape2' library]("https://stackoverflow.com/questions/32390886/i-want-to-turn-column-names-into-an-identifying-column-in-r")
+Creating the Dataframes- Removeing whitespace in the Relative Humidity dataframe : "https://stackoverflow.com/questions/34591329/remove-white-space-from-a-data-frame-column-and-add-path")
 
-[Step 2: Removeing whitespace in the Relative Humidity dataframe]("https://stackoverflow.com/questions/34591329/remove-white-space-from-a-data-frame-column-and-add-path")
+Validation - Connecting points in ggplot : "https://stackoverflow.com/questions/8592585/combine-points-with-lines-with-ggplot2"
 
-[Validation - Connecting points in ggplot]("https://stackoverflow.com/questions/8592585/combine-points-with-lines-with-ggplot2")
+Validation - Ordering the x-axis: "https://stackoverflow.com/questions/12774210/how-do-you-specifically-order-ggplot2-x-axis-instead-of-alphabetical-order")
 
-[Validation - Ordering the x-axis]("https://stackoverflow.com/questions/12774210/how-do-you-specifically-order-ggplot2-x-axis-instead-of-alphabetical-order")
-
+Validation - Dewpoint vs. Dry Bulb : "https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjbsLW5192MAxVHFDQIHcZtByMQFnoECBoQAw&url=https%3A%2F%2Fwww.engineeringtoolbox.com%2Fdry-wet-bulb-dew-point-air-d_682.html%23%3A~%3Atext%3DThe%2520Dew%2520Point%2520temperature%2520is%2Cor%2520removed%2520from%2520the%2520air.&usg=AOvVaw1ysqZDFqtLt65foGZKx0bU&opi=89978449")
 
