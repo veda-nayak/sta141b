@@ -14,8 +14,14 @@ wd = paste(dir, "/alert", sep = "")
 
 setwd(wd)
 
-fn1 = "test.pcap"
+# fn1 = "test.pcap"
 fn2 = "alert.full.maccdc2012_00000.pcap"
+
+fp = paste(wd, fn2, sep = "/")
+
+ll = readLines(fn2, encoding = "latin1")
+
+
 
 # Get the blocks ---------------------------------------------------------------
 
@@ -32,20 +38,15 @@ getBlocks = # make all blocks
     tot_blocks = split(ll, g) # this is where it is going wrong
     names(tot_blocks) = sapply(tot_blocks, `[`, 1)
     
+    tot_blocks = lapply(tot_blocks, function(x){ x[!is.na(x) & x != ""]})
+    
     tot_blocks
     
   }
 
 
 
-fp = paste(wd, fn2, sep = "/")
-
-ll = readLines(fn2, encoding = "latin1")
-
-blocks = getBlocks(ll)
-blocks = lapply(blocks, function(x){ x[!is.na(x) & x != ""]})
-
-line3_df = extractLine3(blocks)
+# line3_df = extractLine3(blocks)
 
 makeTable = 
   function(fn){
@@ -58,16 +59,6 @@ makeTable =
 
 makeTable(fn1)
 
-# line 3
-#  strsplit(blocks[[1]][3], " |:")
-# line 4 (validate structure always the same)
-# strsplit(blocks[[1]][4], " |:")
-# split line 5 for all
-# sapply(blocks, function(x) strsplit(x[5], " |:"))
-# to do for all lines of a block
-# strsplit(blocks[[1]][3-5], " ") # get the common info
-
-# summary(Rprof(filename), rf) --> which functions took the most time
 
 # Extract data from block line 2 -----------------------------------------------
 
@@ -96,11 +87,13 @@ extractLine2 = # get the class and priority from a block's line 2
     
     line2split = lapply(line2split, function(x){ x[!is.na(x) & x != "" & x != " "]})
     
-    classification = sapply(line2split, function(x) strsplit(x[1], split = ": +")[[1]][2])
-    proximity = sapply(line2split, function(x) strsplit(x[2], split = ": +")[[1]][2])
+    Classification = sapply(line2split, function(x) strsplit(x[1], split = ": +")[[1]][2])
+    Proximity = sapply(line2split, function(x) strsplit(x[2], split = ": +")[[1]][2])
     
-    line2details <- as.data.frame(cbind(classification, proximity))
-    line2details$proximity = as.integer(line2details$proximity)
+    line2details <- as.data.frame(cbind(Classification, Proximity))
+    line2details$Proximity = as.integer(line2details$Proximity)
+    
+    colnames(line2details) <- c('Classification', 'Proximity')
     
     line2details
     
@@ -109,7 +102,7 @@ extractLine2 = # get the class and priority from a block's line 2
 # TABLE FOR LINE 3 -------------------------------------------------------------
 
 
-make2ndNA = # make missing port values into "NA"
+makeNaLine3 = # make missing port values into "NA"
   function(x){
     if (length(x) != 2){
       x[1] = x[1]
@@ -154,13 +147,13 @@ extractLine3 = #
   
   source_ip = sapply(ip_split, function(x) x[1])
   source_ip_split = sapply(source_ip, function(x) strsplit(x, split = ":"))
-  source_ip_split_updated = sapply(source_ip_split, make2ndNA)
+  source_ip_split_updated = sapply(source_ip_split, makeNaLine3)
   source_ip_df = as.data.frame(do.call(rbind, source_ip_split_updated))
   source_ip_df = source_ip_df[1:2]
   
   destination_ip = sapply(ip_split, function(x) x[2])
   destination_ip_split = sapply(destination_ip, function(x) strsplit(x, split = ":"))
-  destination_ip_split_updated = sapply(destination_ip_split, make2ndNA)
+  destination_ip_split_updated = sapply(destination_ip_split, makeNaLine3)
   destination_ip_df = as.data.frame(do.call(rbind, destination_ip_split_updated))
   destination_ip_df = destination_ip_df[1:2]
   
@@ -169,40 +162,50 @@ extractLine3 = #
   
   day_month_time_ip <- cbind(day_month_df, time_df, ip_df)
   
+  day_month_time_ip
+  
   }
 
-# TABLE FOR LINE 5 -------------------------------------------------------------
-# line5s = sapply(blocks, function(x) strsplit(x[5], " |:"))
-# table(grepl(">", line4s))
-# which(grepl(">", line4s) == FALSE) #that's okay, last one is
-# 
-# blocks[[1]][5] # > TTl is on line 4
-# blocks[[166492]][5] # > NA
-# 
-# # Solution: Add "" as the first element of 1
-# # blocks[[1]] <- c("", blocks[[1]])
-# # Remove line 166492
-# # FINISH
-# 
-# line5s = sapply(blocks, function(x) strsplit(x[5], " |:"))
-# 
-# # make a datatable with the line5s
-# line5s.table <- do.call(rbind, line5s)
-# line5s.table <- as.data.frame(line5s.table)
-# 
-# # validate this makese sense
-# table(line5s.table[2] == "TTL") # output all true
-# table(line5s.table[4] == "TOS") # all true
-# table(line5s.table[6] == "ID") # all true
-# table(line5s.table[8] == "IpLen") # all true
-# table(line5s.table[8] == "IpLen") # all true
-# table(line5s.table[10] == "DgmLen") # all true
-# 
-# # rename columns
-# colnames(lines.table) <- c("Protocol", "TTL.delete", "TTL", "TOS.delete", "TOS", "ID.delete", "ID", "IpLen.delete", "IpLen", "DgmLen.delete", "DgmLen", "Extra")
-# 
-# # remove the columns we need to delete
-# line5s.table <- line5s.table[,c(1, 3, 5, 7, 9, 10, 11)]
+# TABLE FOR LINE 4 -------------------------------------------------------------
+
+makeNaLine4 = # make missing extra values into "NA"
+  function(x){
+    x[1] = x[1]
+    x[2] = x[2]
+    x[3] = x[3]
+    x[4] = x[4]
+    x[5] = x[5]
+    x[6] = x[6]
+    
+    if (length(x) != 7){
+      x[7] = "NA"}
+    
+    else{
+      x[7] = x[7]
+      }
+    x
+  }
+
+extractLine4 = 
+  function(blocks){
+
+  line4s = sapply(blocks, function(x) x[4])
+  line4s_test = line4s[[2]] #"TCP TTL:127 TOS:0x0 ID:1576 IpLen:20 DgmLen:218 DF"
+  
+  check_line_pattern = table(grepl("^([[:graph:]]*) TTL:([0-9]*) TOS:([0-9]*[[:alpha:]]*[0-9]*) ID:([0-9]*) IpLen:([0-9]*) DgmLen:([0-9]*)(.*)", line4s))  
+
+  # line4s_extract_test = gsub("^([[:graph:]]*) TTL:([0-9]*) TOS:([0-9]*[[:alpha:]]*[0-9]*) ID:([0-9]*) IpLen:([0-9]*) DgmLen:([0-9]*)(.*)", "\\1;\\2;\\3;\\4;\\5;\\6;\\7", line4s_test)
+  line4_extract = sapply(line4s, function(x) gsub("^([[:graph:]]*) TTL:([0-9]*) TOS:([0-9]*[[:alpha:]]*[0-9]*) ID:([0-9]*) IpLen:([0-9]*) DgmLen:([0-9]*)(.*)", "\\1;\\2;\\3;\\4;\\5;\\6;\\7", x))
+  line4_split = sapply(line4_extract, function(x) strsplit(x, split = ";"))
+  
+  line4_split_updated = sapply(line4_split, makeNaLine4)
+  transformed_line4_split_updated = as.data.frame(t(line4_split_updated))
+  
+  colnames(transformed_line4_split_updated) <- c('Protocol', 'TTL', 'TOC', 'ID', 'IpLen', 'DgmLen', 'Extra')
+  
+  transformed_line4_split_updated
+  
+  }
 
 # TABLE FOR LINE 6 -------------------------------------------------------------
 # line6s = sapply(blocks, function(x) strsplit(x[6], " |:"))
