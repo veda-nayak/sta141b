@@ -48,17 +48,6 @@ getBlocks = # make all blocks
 
 # line3_df = extractLine3(blocks)
 
-makeTable = 
-  function(fn){
-    
-    fp = paste(wd, fn, sep = "/")
-    
-    ll = readLines(fn, encoding = "latin1") # lines.list
-    
-  }
-
-makeTable(fn1)
-
 
 # Extract data from block line 2 -----------------------------------------------
 
@@ -66,10 +55,11 @@ extractLine1 = # get the class and priority from a block's line 2
   function(blocks){
     
     line1s = sapply(blocks, function(x) x[1])
-    line1_test = line1s[[2]]
+    line1_test = line1s[[2]] #"[**] [1:2009358:5] ET SCAN Nmap Scripting Engine User-Agent Detected (Nmap Scripting Engine) [**]"
     
-    line1_pattern_table = table(grepl("[[:digit:]:]", line1s)) # everything follows this pattern
-    line1_pattern_table = table(grepl("^\\[\\*\\*\\]", line1s))
+    line1_pattern_check = table(grepl("^\\[\\*\\*\\] \\[[0-9]*:([0-9]*):[0-9]*\\] ([[:alpha:]| ]*) +\\[", line1s))
+    
+    line1_test_extract = gsub("^\\[\\*\\*\\] \\[[0-9]*:([0-9]*):[0-9]*\\] ([[:alpha:]| ]*)  .*", "\\1;\\2", line1_test)
     
   }
 
@@ -207,38 +197,26 @@ extractLine4 =
   
   }
 
-# TABLE FOR LINE 6 -------------------------------------------------------------
-# line6s = sapply(blocks, function(x) strsplit(x[6], " |:"))
-# 
-# #remove empty strings
-# line6s= lapply(line6s, function(x){ x[!is.na(x) & x != ""]})
-# # CITE: https://stackoverflow.com/questions/58977189/remove-empty-strings-in-a-list-of-lists-in-r
-# 
-# # Check if the same elements are in each
-# table(grepl("Seq", line6s)) # output, about half do not contain the sequence (could make a table)
-# notRight6 <- which(grepl("Seq", line6s) == FALSE) # output: these are the lines containing the error type and code 
-# 
-# 
-# # make a datatable with the line5s
-# line6s.table <- do.call(rbind, line6s)
-# line6s.table <- as.data.frame(line6s.table)
-# 
-# # OPTION: I could just take the rows that contain type + code 
-# # and make them their own column + put NA for the remaining values
-# 
-# line6s.error.table <- line6s.table %>% filter(V1 == "Type")
-# 
-# # validate this makese sense
-# table(line5s.table[2] == "TTL") # output all true
-# table(line5s.table[4] == "TOS") # all true
-# table(line5s.table[6] == "ID") # all true
-# table(line5s.table[8] == "IpLen") # all true
-# table(line5s.table[8] == "IpLen") # all true
-# table(line5s.table[10] == "DgmLen") # all true
-# 
-# # rename columns
-# colnames(line5s.table) <- c("Protocol", "TTL.delete", "TTL", "TOS.delete", "TOS", "ID.delete", "ID", "IpLen.delete", "IpLen", "DgmLen.delete", "DgmLen", "Extra")
-# 
-# # remove the columns we need to delete
-# line5s.table <- line5s.table[,c(1, 3, 5, 7, 9, 10, 11)]
+# TABLE FOR LINE 5 -------------------------------------------------------------
 
+
+# The final DF -----------------------------------------------------------------
+# (to the tune of the final countdown)
+
+makeDF = 
+  function(fn){
+    
+    fp = paste(wd, fn, sep = "/")
+    
+    ll = readLines(fn, encoding = "latin1") # lines.list
+    
+    blocks = getBlocks(ll)
+    
+    line1df <- extractLine1(blocks)
+    line2df <- extractLine2(blocks)
+    line3df <- extractLine3(blocks)
+    line4df <- extractLine4(blocks)
+    
+    commonDf <- cbind(line1df, line2df, line3df, line4df)
+    
+  }
