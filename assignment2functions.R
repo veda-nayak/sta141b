@@ -4,7 +4,7 @@ suppressWarnings(library(ggplot2))
 suppressWarnings(library(gridExtra))
 suppressWarnings(library(reshape2))
 suppressWarnings(library(data.table))
-suppressWarnings(library(janitor))
+# suppressWarnings(library(janitor))
 
 # Set working directory + bring in test files ----------------------------------
 
@@ -36,157 +36,16 @@ getBlocks = # make all blocks
     
   }
 
-# split the lines of each block by a space -------------------------------------
 
-splitBlocks = 
-  function(block){
-    
-    
-    
-  }
-
-# Extract data from block line 1 -----------------------------------------------
-
-findTitle = 
-  function(block){
-    
-    
-    }
-
-# Extract data from block line 2 -----------------------------------------------
-
-extractLine2 = # get the class and priority from a block's line 2
-  function(block){
-    
-    line2 = block[2]
-    # pseudo line2 = "[Classification: Web Application Attack] [Priority: 1]"
-    parts = gsub("\\[Classification: (.*)\\] \\[Priority: (.*)\\]", "\\1 ; \\2", line2)
-    parts_split = unlist(strsplit(parts, split = " ; ")) 
-    
-    # parts_split[1] = classification
-    # parts_split[2] = priority
-    
-    parts_split
-    
-  }
-
-# Extract data from block line 3 -----------------------------------------------
-
-extractLine3 = # month/day/time + IP/port info from a block's line 3
-  function(block){
-    
-    line3 = block[3]
-    # line3 = "03/16-07:30:00.840000 192.168.202.79:50465 -> 192.168.229.251:80"
-    
-    # day-time =  03/16-08:30:07.840000
-    # source IP : port
-    # destination IP : port
-
-    parts = gsub("([0-9][0-9])\\/([0-9][0-9])-([0-9][0-9]):([0-9][0-9]):([0-9][0-9].[0-9]*) ([0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*):([0-9]*) -> ([0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*):([0-9]*)", "\\1 ; \\2 ; \\3 ; \\4 ; \\5 ; \\6 ; \\7 ; \\8 ; \\9", line3)
-    parts_split = unlist(strsplit(parts, split = " ; ")) 
-    
-    # 1 - month
-    # 2 - day
-    # 3 - hour
-    # 4 - minute
-    # 5 - second.millisecond
-    # 6 - source IP
-    # 7 - source port
-    # 8 - destination IP
-    # 9 - destination port
-    
-    parts_split
-    
-  }
-
-
-# Extract data from block line 4 -----------------------------------------------
-
-extractLine4 = # BLANK info from a block's line 4
-  function(block){
-    
-    line4 = block[4]
-    line4 = "TCP TTL:64 TOS:0x0 ID:6622 IpLen:20 DgmLen:1420 DF"
-    
-    parts = gsub("([:alpha:]*) TTL:([0-9]*) TOS:([0-9]*x[0-9]*) ID:([0-9]*) IpLen:([0-9]*) DgmLen:([0-9]*) ([:alpha:]*)", "\\1 ; \\2 ; \\3 ; \\4 ; \\5 ; \\6 ; \\7 ", line4)
-    
-    ttl = gsub("TTL:([0-9].*)", "\1", line4)
-    
-    tos = gsub("TOS:([0-9]*x[0-9]*)", "\\1", line4)
-    id = gsub("ID:([0-9]*)", "\\1", line4)
-    
-    parts_split = unlist(strsplit(parts, split = " ; ")) 
-    
-    # 1 - protocol
-    # 2 - ttl
-    # 3 - tos
-    # 4 - id
-    # 5 - iplen
-    # 6 - dgmlen
-    # 7 - extra
-    
-    parts_split
-    
-  }
-
-# Extract data from block line 4 -----------------------------------------------
-
-extractLine5 = # BLANK info from a block's line 5
-  function(block){
-    
-    # line5 = block[5]
-    line5 = " ***A**** Seq: 0x35DCBDC1 Ack: 0x8D3EB9C5 Win: 0xB5 TcpLen: 32"
-    
-    seq = gsub("Seq: ([:alnum:]*) ", "\\1", line5)
-    
-    
-    
-  }
-
-# For later --------------------------------------------------------------------
-# to get the info for one bloc block[[i]]
-# table(grepl("pattern (to check starts with do ^)", ll))
-
-# how can you check that a particular order is always met?
-# split by a common value (I think we can use spaces here)
-# els[[1]][1:5] --> use regex to say ^t=
-
-# Grab the time
-# what the part looks like - [[1]][1] = "t=0000"
-# gsub("^t=", "", [[1]][1]) # replace the ^t= with ""
-#leaves you with [[1]][1] = 0000
-# t = sapply(els, `[`, 1)
-# look at the class, check the length, make sure it makes sense
-# time = gsub("^t=", "", t)
-
-
-# Pos
-# elsstrsplit(gsub("^pos=", "", els[[1]][3]), ",") --> [[1]] [1] "x" "y" "z"
-# pos = sapply(els, `[`, 3)
-# pels = strsplit(gsub("^pos=", "", pos), ",")
-# gives you a list of vectors with x, y, z elements
-# pels2 = do.call(rbind, pels) > this will give you a matrix with the elements you need
-
-# 00:14:bf:b1:97:8d=-65,24300000,3
-# I need 4 elements
-# How can I split this? split by both an '=' and a ','
-# strsplit(tmp, ",|=")
-# output is a list of vectors with our 4 elemtns
-# strsplit(tmp, "[,=]") does the same
-# rest = lapply(els, `[`, -(1:4)) #not the common
-# rest2 = strsplit(rest, function(x) do.call(rbind, strsplit(x, "[,=]")))
-# output is a list of matrixes, length is equal to the number of lines
-# rest3 = do.call(rbind, rest2)
-
-# how do I know I got these right?
-# check the class of everything, how many unique addresses do I have
-# look at the number of rows for each column, does it match, does this  equal # elements - 4 
 
 fp = paste(wd, fn2, sep = "/")
 
 ll = readLines(fn2, encoding = "latin1")
 
 blocks = getBlocks(ll)
+blocks = lapply(blocks, function(x){ x[!is.na(x) & x != ""]})
+
+line3_df = extractLine3(blocks)
 
 makeTable = 
   function(fn){
@@ -195,9 +54,188 @@ makeTable =
     
     ll = readLines(fn, encoding = "latin1") # lines.list
     
-    line2 = extractLine2(fn)
-    line2
-    
   }
 
 makeTable(fn1)
+
+# line 3
+#  strsplit(blocks[[1]][3], " |:")
+# line 4 (validate structure always the same)
+# strsplit(blocks[[1]][4], " |:")
+# split line 5 for all
+# sapply(blocks, function(x) strsplit(x[5], " |:"))
+# to do for all lines of a block
+# strsplit(blocks[[1]][3-5], " ") # get the common info
+
+# summary(Rprof(filename), rf) --> which functions took the most time
+
+# Extract data from block line 2 -----------------------------------------------
+
+extractLine1 = # get the class and priority from a block's line 2
+  function(blocks){
+    
+    line1s = sapply(blocks, function(x) x[1])
+    line1_test = line1s[[2]]
+    
+    line1_pattern_table = table(grepl("[[:digit:]:]", line1s)) # everything follows this pattern
+    line1_pattern_table = table(grepl("^\\[\\*\\*\\]", line1s))
+    
+  }
+
+# Extract data from block line 2 -----------------------------------------------
+
+extractLine2 = # get the class and priority from a block's line 2
+  function(blocks){
+    
+    line2s = sapply(blocks, function(x) x[2])
+    # pseudo_line2 = "[Classification: Web Application Attack] [Priority: 1]"
+    
+    # grepl to to see if classification before priority
+    
+    line2split = sapply(line2s, function(x) strsplit(x, split = "\\[|\\]"))
+    
+    line2split = lapply(line2split, function(x){ x[!is.na(x) & x != "" & x != " "]})
+    
+    classification = sapply(line2split, function(x) strsplit(x[1], split = ": +")[[1]][2])
+    proximity = sapply(line2split, function(x) strsplit(x[2], split = ": +")[[1]][2])
+    
+    line2details <- as.data.frame(cbind(classification, proximity))
+    line2details$proximity = as.integer(line2details$proximity)
+    
+    line2details
+    
+  }
+
+# TABLE FOR LINE 3 -------------------------------------------------------------
+
+
+make2ndNA = # make missing port values into "NA"
+  function(x){
+    if (length(x) != 2){
+      x[1] = x[1]
+      x[2] = "NA"}
+    else{
+      x[1] = x[1]
+      x[2] = x[2]
+    }
+    x
+  }
+
+extractLine3 = # 
+  function(blocks){
+
+  line3s = sapply(blocks, function(x) x[3])
+  line3test =        "03/16-07:30:00.010000 192.168.202.79:50467 -> 192.168.229.251:80" # blocks[[2]][3]
+  line3testUnreach = "03/16-07:30:00.060000 192.168.27.25 -> 192.168.202.100" # blocks[[8]][3]
+  
+  # Day/Month -------------
+  check_day_month_pattern = table(grepl("^([0-9]+)/([0-9]+)-.*", line3s))
+  day_month_pattern = "^([0-9]+)/([0-9]+)-.*"
+  # day_month_test = gsub(day_month_pattern, "\\1;\\2", line3test)
+  day_month = sapply(line3s, function(x) gsub(day_month_pattern, "\\1;\\2", x))
+  # day_month_split_test = strsplit(day_month_test, split = ";")
+  day_month_split = sapply(day_month, function(x) strsplit(x, split = ";"))
+  day_month_df = as.data.frame(do.call(rbind, day_month_split))
+  colnames(day_month_df) <- c('Month', 'Day')
+  
+  # Time ------------------
+  check_time_pattern = table(grepl("[0-9]+/[0-9]+-([0-9]+:[0-9]+:[0-9]+.[0-9]*) .*", line3s))
+  # time_test = gsub("[0-9]+/[0-9]+-([0-9]+:[0-9]+:[0-9]+.[0-9]*) .*", "\\1", line3test)
+  time = sapply(line3s, function(x) gsub("[0-9]+/[0-9]+-([0-9]+:[0-9]+:[0-9]+.[0-9]*) .*", "\\1", x))
+  time = list(time)
+  time_df = as.data.frame(do.call(cbind, time))
+  colnames(time_df) <- c('Time')
+  
+  # IP -------------------
+  check_ip_pattern = table(grepl(".*[0-9]+:[0-9]+:[0-9]+.[0-9]* (.*) +-> +(.*)", line3s))
+  # ip_test = gsub(".*[0-9]+:[0-9]+:[0-9]+.[0-9]* (.*) +-> +(.*)", "\\1;\\2", line3test)
+  ip = sapply(line3s, function(x) gsub(".*[0-9]+:[0-9]+:[0-9]+.[0-9]* (.*) +-> +(.*)", "\\1;\\2", x))
+  ip_split = sapply(ip, function(x) strsplit(x, split = ";"))
+  
+  source_ip = sapply(ip_split, function(x) x[1])
+  source_ip_split = sapply(source_ip, function(x) strsplit(x, split = ":"))
+  source_ip_split_updated = sapply(source_ip_split, make2ndNA)
+  source_ip_df = as.data.frame(do.call(rbind, source_ip_split_updated))
+  source_ip_df = source_ip_df[1:2]
+  
+  destination_ip = sapply(ip_split, function(x) x[2])
+  destination_ip_split = sapply(destination_ip, function(x) strsplit(x, split = ":"))
+  destination_ip_split_updated = sapply(destination_ip_split, make2ndNA)
+  destination_ip_df = as.data.frame(do.call(rbind, destination_ip_split_updated))
+  destination_ip_df = destination_ip_df[1:2]
+  
+  ip_df <- cbind(source_ip_df, destination_ip_df)
+  colnames(ip_df) <- c('SourceIP', 'SourcePort', 'DestinationIP', 'DestinationPort')
+  
+  day_month_time_ip <- cbind(day_month_df, time_df, ip_df)
+  
+  }
+
+# TABLE FOR LINE 5 -------------------------------------------------------------
+# line5s = sapply(blocks, function(x) strsplit(x[5], " |:"))
+# table(grepl(">", line4s))
+# which(grepl(">", line4s) == FALSE) #that's okay, last one is
+# 
+# blocks[[1]][5] # > TTl is on line 4
+# blocks[[166492]][5] # > NA
+# 
+# # Solution: Add "" as the first element of 1
+# # blocks[[1]] <- c("", blocks[[1]])
+# # Remove line 166492
+# # FINISH
+# 
+# line5s = sapply(blocks, function(x) strsplit(x[5], " |:"))
+# 
+# # make a datatable with the line5s
+# line5s.table <- do.call(rbind, line5s)
+# line5s.table <- as.data.frame(line5s.table)
+# 
+# # validate this makese sense
+# table(line5s.table[2] == "TTL") # output all true
+# table(line5s.table[4] == "TOS") # all true
+# table(line5s.table[6] == "ID") # all true
+# table(line5s.table[8] == "IpLen") # all true
+# table(line5s.table[8] == "IpLen") # all true
+# table(line5s.table[10] == "DgmLen") # all true
+# 
+# # rename columns
+# colnames(lines.table) <- c("Protocol", "TTL.delete", "TTL", "TOS.delete", "TOS", "ID.delete", "ID", "IpLen.delete", "IpLen", "DgmLen.delete", "DgmLen", "Extra")
+# 
+# # remove the columns we need to delete
+# line5s.table <- line5s.table[,c(1, 3, 5, 7, 9, 10, 11)]
+
+# TABLE FOR LINE 6 -------------------------------------------------------------
+# line6s = sapply(blocks, function(x) strsplit(x[6], " |:"))
+# 
+# #remove empty strings
+# line6s= lapply(line6s, function(x){ x[!is.na(x) & x != ""]})
+# # CITE: https://stackoverflow.com/questions/58977189/remove-empty-strings-in-a-list-of-lists-in-r
+# 
+# # Check if the same elements are in each
+# table(grepl("Seq", line6s)) # output, about half do not contain the sequence (could make a table)
+# notRight6 <- which(grepl("Seq", line6s) == FALSE) # output: these are the lines containing the error type and code 
+# 
+# 
+# # make a datatable with the line5s
+# line6s.table <- do.call(rbind, line6s)
+# line6s.table <- as.data.frame(line6s.table)
+# 
+# # OPTION: I could just take the rows that contain type + code 
+# # and make them their own column + put NA for the remaining values
+# 
+# line6s.error.table <- line6s.table %>% filter(V1 == "Type")
+# 
+# # validate this makese sense
+# table(line5s.table[2] == "TTL") # output all true
+# table(line5s.table[4] == "TOS") # all true
+# table(line5s.table[6] == "ID") # all true
+# table(line5s.table[8] == "IpLen") # all true
+# table(line5s.table[8] == "IpLen") # all true
+# table(line5s.table[10] == "DgmLen") # all true
+# 
+# # rename columns
+# colnames(line5s.table) <- c("Protocol", "TTL.delete", "TTL", "TOS.delete", "TOS", "ID.delete", "ID", "IpLen.delete", "IpLen", "DgmLen.delete", "DgmLen", "Extra")
+# 
+# # remove the columns we need to delete
+# line5s.table <- line5s.table[,c(1, 3, 5, 7, 9, 10, 11)]
+
