@@ -14,6 +14,13 @@ fns = c("alert.full.maccdc2012_00000.pcap", "alert.full.maccdc2012_00001.pcap")
 df_0 = makeDF(fns[1])
 df_1 = makeDF(fns[2])
 
+# Validate Classes -------------------------------------------------------------
+class_0 <- class(df_0)
+class_1 <- class(df_1)
+
+# everything is a charecter because there are some NA's 
+classes_0 <- as.data.frame(sapply(df_0, function(x) class(x[c(1:25)])))
+classes_1 <- as.data.frame(sapply(df_1, function(x) class(x[c(1:25)])))
 
 # Verify that the the extralines were extracted correctly ----------------------
 ## df_0 ---------------------------------

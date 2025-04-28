@@ -193,6 +193,10 @@ extractLine4 =
   
   colnames(transformed_line4_split_updated) <- c('Protocol', 'TTL', 'TOC', 'ID', 'IpLen', 'DgmLen', 'Extra')
   
+  transformed_line4_split_updated$TTL <- as.integer(transformed_line4_split_updated$TTL)
+  transformed_line4_split_updated$ID <- as.integer(transformed_line4_split_updated$ID)
+  transformed_line4_split_updated$IpLen <- as.integer(transformed_line4_split_updated$IpLen)
+  
   transformed_line4_split_updated
   
   }
@@ -322,6 +326,13 @@ makeDF =
     without_ext = tools::file_path_sans_ext(fn)
     
     commonDf$filename <- without_ext
+    
+    commonDf$Month <- as.integer(commonDf$Month)
+    commonDf$Day <- as.integer(commonDf$Day)
+    commonDf$DgmLen <- as.integer(commonDf$DgmLen)
+    commonDf$TTL <- as.integer(commonDf$TTL)
+    commonDf$ID <- as.integer(commonDf$ID)
+    commonDf$IpLen <- as.integer(commonDf$IpLen)
     
     commonDf
     
