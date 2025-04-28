@@ -7,6 +7,10 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+dir = "C:/cygwin64/home/vedan/Code/sta141b"
+setwd(dir)
+
+source(paste(dir, "/assignment2code.R", sep=''))
 ```
 
 # Overview
@@ -65,7 +69,8 @@ I noticed that I was getting an extra empty block in my result. I deleted the la
 2. String split on *[* and *]* to break apart the *classification* and *proximity*. 
 3. Remove empty strings
 4. The 1st term will always be the*classification* and the second term will always be *proximity*. I used this to extrac the respective terms. 
-5. Create a dataframe and rename the columns. 
+5. Create a dataframe and rename the columns.
+
 ## extractLine3()
 
 1. Extract the line n elements from all the blocks. 
@@ -109,3 +114,18 @@ I noticed that I was getting an extra empty block in my result. I deleted the la
 3. Turn the vector into a dataframe
 
 ## makeDF()
+
+1. Read in the lines and use *getBlocks()* to extract the blocks. 
+2. Pass the blocks to each of the *extract___()* functions to get 6 dataframes (one for each line/gtoup of lines)
+3. Bind the dataframes together
+4. Remove lines that contain NAs
+- I kept getting an extra line at the end. Since I used the character "NA" to fill in missing values, using na.omit() over my dataframe was a suitable way to remove a row with nothing. 
+
+# Validation
+
+## View Dataframes
+
+
+## Check the number of rows and columns
+
+*Expected number*

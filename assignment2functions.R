@@ -280,12 +280,22 @@ extractExtraLines =
 # The final DF -----------------------------------------------------------------
 # (to the tune of the final countdown)
 
-makeDF = 
+getLines= 
   function(fn){
     
     fp = paste(wd, fn, sep = "/")
     
     ll = readLines(fn, encoding = "latin1") # lines.list
+    
+    ll
+    
+  }
+  
+
+makeDF = 
+  function(fn){
+    
+    ll = getLines(fn)
     
     blocks = getBlocks(ll)
     
