@@ -1,0 +1,111 @@
+---
+title: "Assignment2_ReadingServerAlertData"
+author: "Veda Nayak"
+date: "2025-04-18"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+The goal of this assignment is to create a dataframe containing information from server alert data. 
+
+The final data table should include 23 columns:
+
+- Title of Event
+- Classification
+- Priority
+- Snort ID
+- Month
+- Day
+- Timed
+- IP address + Port
+    - 4 columns total, 2 for the source and 2 for the destination
+- The protocol
+- TTL
+- TOS 
+- ID
+- IpLen
+- DgmLen
+- Extra (the text after the DgmLen in line 4)
+- Seq
+- Ack
+- Win 
+- TcpLen
+- TCP flag
+- Extra lines
+- Filename
+
+# Functions
+
+To more easily organize the information, created functions to extract the information from each line.
+
+## getblocks()
+
+This function looks for empty lines, does a cumsum on the true/false values, and splits the text based on those values. 
+I noticed that I was getting an extra empty block in my result. I deleted the last block if the last value has a "TRUE" when looking for empty lines. 
+
+## extractLine1()
+
+1. Extract the line n elements from all the blocks. 
+2. Use regular expressions and gsub() to extract the desired information. 
+- I tested the regular expression incrementally to develop it 
+- I saw that each line started with [**]
+- The *Snort ID* will always be [integer:integer:integer]
+- The *title* will be a mix of letters and spaces and will follow the Snort ID
+3. Split the resulting vector elements by the designated space.
+4. Convert the resulting vector into a matrix (using do.call() and rbind()) then dataframe.
+5. Rename the column names to something more meaningful. 
+
+## extractLine2()
+
+1. Extract the line n elements from all the blocks. 
+2. String split on *[* and *]* to break apart the *classification* and *proximity*. 
+3. Remove empty strings
+4. The 1st term will always be the*classification* and the second term will always be *proximity*. I used this to extrac the respective terms. 
+5. Create a dataframe and rename the columns. 
+## extractLine3()
+
+1. Extract the line n elements from all the blocks. 
+2. Use regular expressions and gsub() to extract the desired information. 
+- *Day/Month*: After extracting the day/month term (always integer/integer), string split based on the "/". I then added the resulting value into a matrix then dataframe. 
+- *Time*: Integers following the day/month and that follow integer(2x):integer(2x):integer(2x).integer(some number). After getting the value I made another dataframe. 
+- *IP & Port*: I extacted both IP information into one vector. I found the IP values using the pattern I built followed by a (wildcard) -> (wildcard). The source always preceded the destination, so when splitting along the ";", I extracted the first term for the source and the second for the destination from the resulting vector. I then split the result across the ":" and used the *makeNaLine3()* to fill in missing port values with the character "NA". I made a third dataframe with this information.
+4. I then bound the resulting dataframes using cbind().
+
+## extractLine4()
+
+1. Extract the line n elements from all the blocks. 
+2. Use regular expressions and gsub() to extract the desired information. 
+- I saw that all the line4s follow the same order of values, so I made one regular expression for the 'Protocol', 'TTL', 'TOC', 'ID', 'IpLen', 'DgmLen', & 'Extra' values, respectively. 
+- *Protocol*: letters(some number)
+- *TTL*: integers(some number)
+- *ID*: integers(some number)letters(somenumber)integers(some number)
+- *IpLen*: integers(some number)
+- *DgmLen*: integers(some number)
+- *Extra*: wildcard(whatever is left)
+3. Split the resulting vector elements by the designated space.
+- For *blocks with no extra values* I used *makeNaLine4()* to fill the missing value with the charecter "NA". 
+4. Convert the resulting vector into a matrix (using do.call() and rbind()) then dataframe.
+5. Rename the column names to something more meaningful. 
+
+## extractLine5()
+
+1. Extract the line n elements from all the blocks. 
+2. Use regular expressions and gsub() to extract the desired information. 
+- I saw that all *the lines with a line5* follow the same pattern 'TCP_flag', "Seq", 'Ack', 'Window', & 'TCP_len' values, respectively. I used a wildcard to find the respective values and get a vector with the respective values. 
+3. Split the resulting vector elements by the designated space.
+- For the *blocks with a line5*, the workflow is similar to before. 
+- For the *blocks with no line 5*, I used the *makeNaLine5()* to replace missing values with the character "NA".
+4. Convert the resulting vector into a matrix (using do.call() and rbind()) then dataframe.
+5. Rename the column names to something more meaningful.
+
+## extractExtraLines()
+
+1. Create a list of blocks without the first 5 lines.
+2. Collapse the remaining lines using paste and separate the lines with a newline character. 
+3. Turn the vector into a dataframe
+
+## makeDF()

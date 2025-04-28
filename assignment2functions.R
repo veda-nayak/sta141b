@@ -1,10 +1,8 @@
 # Import Packages ------------------------------------------------------
 suppressWarnings(library(dplyr))
-suppressWarnings(library(ggplot2))
+# suppressWarnings(library(ggplot2))
 suppressWarnings(library(gridExtra))
-suppressWarnings(library(reshape2))
-suppressWarnings(library(data.table))
-# suppressWarnings(library(janitor))
+library(dplyr)
 
 # Set working directory + bring in test files ----------------------------------
 
@@ -14,40 +12,29 @@ wd = paste(dir, "/alert", sep = "")
 
 setwd(wd)
 
-# fn1 = "test.pcap"
-fn2 = "alert.full.maccdc2012_00000.pcap"
-
-fp = paste(wd, fn2, sep = "/")
-
-ll = readLines(fn2, encoding = "latin1")
-
-
-
 # Get the blocks ---------------------------------------------------------------
 
 getBlocks = # make all blocks
   # Uses: findTitles
   function(ll){
     
+    
     starts = grepl("^\\s*$", ll)
     
     # group the lines based on blocks between trues
     w = starts
+    if (w[length(w)] == TRUE) {
+      w[1:(length(w)-1)]
+      }
+    
     g = cumsum(w) # this is giving the starting index to split by
     
-    tot_blocks = split(ll, g) # this is where it is going wrong
+    tot_blocks = split(ll, g)
     names(tot_blocks) = sapply(tot_blocks, `[`, 1)
     
     tot_blocks = lapply(tot_blocks, function(x){ x[!is.na(x) & x != ""]})
     
-    tot_blocks
-    
   }
-
-
-
-# line3_df = extractLine3(blocks)
-
 
 # Extract data from block line 2 -----------------------------------------------
 
@@ -57,9 +44,21 @@ extractLine1 = # get the class and priority from a block's line 2
     line1s = sapply(blocks, function(x) x[1])
     line1_test = line1s[[2]] #"[**] [1:2009358:5] ET SCAN Nmap Scripting Engine User-Agent Detected (Nmap Scripting Engine) [**]"
     
-    line1_pattern_check = table(grepl("^\\[\\*\\*\\] \\[[0-9]*:([0-9]*):[0-9]*\\] ([[:alpha:]| ]*) +\\[", line1s))
+    line1_pattern = "^\\[\\*\\*\\] \\[[0-9]*:([0-9]*):[0-9]*\\] ([[:alpha:]| ]*).*"
+      
+    line1_pattern_check = table(grepl(line1_pattern, line1s))
     
-    line1_test_extract = gsub("^\\[\\*\\*\\] \\[[0-9]*:([0-9]*):[0-9]*\\] ([[:alpha:]| ]*)  .*", "\\1;\\2", line1_test)
+    line1_test_extract = gsub(line1_pattern, "\\1;\\2", line1_test)
+    
+    line1_extract = sapply(line1s, function(x) gsub(line1_pattern, "\\1;\\2", x))
+    line1_split = sapply(line1_extract, function(x) strsplit(x, split = ";"))
+    
+    line1_df = do.call(rbind, line1_split)
+    line1_df = as.data.frame(line1_df)
+    
+    colnames(line1_df) <- c('SnortID', 'Title')
+    
+    line1_df
     
   }
 
@@ -150,6 +149,7 @@ extractLine3 = #
   ip_df <- cbind(source_ip_df, destination_ip_df)
   colnames(ip_df) <- c('SourceIP', 'SourcePort', 'DestinationIP', 'DestinationPort')
   
+  # Put it together ------
   day_month_time_ip <- cbind(day_month_df, time_df, ip_df)
   
   day_month_time_ip
@@ -180,9 +180,9 @@ extractLine4 =
   function(blocks){
 
   line4s = sapply(blocks, function(x) x[4])
-  line4s_test = line4s[[2]] #"TCP TTL:127 TOS:0x0 ID:1576 IpLen:20 DgmLen:218 DF"
+  # line4s_test = line4s[[2]] #"TCP TTL:127 TOS:0x0 ID:1576 IpLen:20 DgmLen:218 DF"
   
-  check_line_pattern = table(grepl("^([[:graph:]]*) TTL:([0-9]*) TOS:([0-9]*[[:alpha:]]*[0-9]*) ID:([0-9]*) IpLen:([0-9]*) DgmLen:([0-9]*)(.*)", line4s))  
+  # check_line_pattern = table(grepl("^([[:graph:]]*) TTL:([0-9]*) TOS:([0-9]*[[:alpha:]]*[0-9]*) ID:([0-9]*) IpLen:([0-9]*) DgmLen:([0-9]*)(.*)", line4s))  
 
   # line4s_extract_test = gsub("^([[:graph:]]*) TTL:([0-9]*) TOS:([0-9]*[[:alpha:]]*[0-9]*) ID:([0-9]*) IpLen:([0-9]*) DgmLen:([0-9]*)(.*)", "\\1;\\2;\\3;\\4;\\5;\\6;\\7", line4s_test)
   line4_extract = sapply(line4s, function(x) gsub("^([[:graph:]]*) TTL:([0-9]*) TOS:([0-9]*[[:alpha:]]*[0-9]*) ID:([0-9]*) IpLen:([0-9]*) DgmLen:([0-9]*)(.*)", "\\1;\\2;\\3;\\4;\\5;\\6;\\7", x))
@@ -198,6 +198,83 @@ extractLine4 =
   }
 
 # TABLE FOR LINE 5 -------------------------------------------------------------
+newLine5 = 
+  function(x){
+    line5pattern_works = "(.*) Seq: (.*) Ack: (.*) Win: (.*) TcpLen: (.*)"
+    
+    if (grepl(line5pattern_works, x) == TRUE){
+      x = gsub(line5pattern_works, "\\1;\\2;\\3;\\4;\\5", x)
+    }
+    x
+  }
+
+makeNaLine5 = # make missing extra values into "NA"
+  function(x){
+    
+    if (length(x) == 5){
+      x[1] = x[1]
+      x[2] = x[2]
+      x[3] = x[3]
+      x[4] = x[4]
+      x[5] = x[5]
+      }
+    
+    else{
+      x[1] = "NA"
+      x[2] = "NA"
+      x[3] = "NA"
+      x[4] = "NA"
+      x[5] = "NA"
+    }
+    
+    x
+  }
+
+extractLine5 =  
+  function(blocks){
+    
+    line5s = sapply(blocks, function(x) x[5])
+    line5_test = line5s[[2]] # "***AP**F Seq: 0x54831ACE  Ack: 0x328B4920  Win: 0xFA4A  TcpLen: 32"
+    new_line_5 = sapply(line5s, newLine5)
+    new_line_5 <- as.character(new_line_5)
+    line_5_split = sapply(new_line_5, function(x) strsplit(x, split = " ;|;"))
+    line5_df = as.data.frame(t(as.data.frame(sapply(line_5_split, makeNaLine5))))
+    colnames(line5_df) <- c('TCP_flag', "Seq", 'Ack', 'Window', 'TCP_len')
+    line5_df
+  }
+
+# Extra Lines ------------------------------------------------------------------
+
+# makeNaExtraLines = # no longer needed(I think), but I am scared to delete lines
+#   function(x){
+#     
+#     if (x[8] == NA){
+#       x[1] = x[1]
+#       x[2] = x[2]
+#       x[3] = x[3]
+#       x[4] = x[4]
+#       x[5] = x[5]
+#       x[6] = x[6]
+#     }
+#     
+#     else{
+#       x[1] = "NA"
+#       x[2] = "NA"
+#       x[3] = "NA"
+#       x[4] = "NA"
+#       x[5] = "NA"
+#     }
+#     
+#     x
+#   }
+
+extractExtraLines = 
+  function(blocks){
+    # block_lengths = sapply(blocks, function(x) length(x)) # 4 - 11
+    extra_lines = sapply(blocks, function(x) x[-c(1, 2, 3, 4, 5)]) # 6 lines in the new situation
+    extra_lines_single = sapply(extra_lines, function(x) paste(x, collapse = "\n"))
+    extra_lines_df = as.data.frame(extra_lines_single)
+  }
 
 
 # The final DF -----------------------------------------------------------------
@@ -216,7 +293,29 @@ makeDF =
     line2df <- extractLine2(blocks)
     line3df <- extractLine3(blocks)
     line4df <- extractLine4(blocks)
+    line5df <- extractLine5(blocks)
+    extradf <- extractExtraLines(blocks)
     
-    commonDf <- cbind(line1df, line2df, line3df, line4df)
+    rownums = seq(from = 1, to = count(line1df)[1,1])
+    rownames(line1df) <- rownums
+    rownames(line2df) <- rownums
+    rownames(line3df) <- rownums
+    rownames(line4df) <- rownums
+    rownames(line5df) <- rownums
+    
+   
+    commonDf <- cbind(line1df, line2df, line3df, line4df, line5df, extradf)
+    commonDf <- na.omit(commonDf) # we can do this because I labeled all missing values as "NA" not NA
+                                  # it will just remove lines created by accident
+    
+    # Add a column for the name of the file
+    without_ext = tools::file_path_sans_ext(fn)
+    
+    commonDf$filename <- without_ext
+    
+    commonDf
+    
     
   }
+
+

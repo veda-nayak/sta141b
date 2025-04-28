@@ -1,9 +1,14 @@
+# Set the directories ----------------------------------------------------------
 dir = "C:/cygwin64/home/vedan/Code/sta141b"
 setwd(dir)
+
 source(paste(dir, "/assignment2functions.R", sep=''))
 
-blocks = getBlocks(ll)
+wd = paste(dir, "/alert", sep = "")
 
-line2_df <- extractLine2(blocks)
-line3_df <- extractLine3(blocks) # way to validate, is NA in source always NA in destination
+setwd(wd)
 
+# Make both dfs ----------------------------------------------------------------
+fns = c("alert.full.maccdc2012_00000.pcap", "alert.full.maccdc2012_00001.pcap")
+
+dfs = sapply(fns, makeDF)
