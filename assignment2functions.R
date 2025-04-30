@@ -409,11 +409,12 @@ checkValid = # Is line N the only line that contains my value
   function(blocks, line, pattern){
     line = as.integer(line)
     
-    linesWithValue = sapply(blocks, function(x) which(grepl(pattern, x))) # finds blocks w/ value
-
+    linesWithValue_allLines = sapply(blocks, function(x) grepl(pattern, x)) # finds blocks w/ value
+    linesWithValue_justTF = sapply(linesWithValue_allLines, function(x) if (TRUE %in% x){TRUE}else{FALSE})
+    
     lines_N_WithValue = sapply(blocks, function(x) grepl(pattern, x[line])) # finds blocks w/ value on line 5
     
-    validationTable = table(linesWithValue == lines_N_WithValue) # all TRUE (the one false is due to an empty string)
+    validationTable = table(linesWithValue_justTF == lines_N_WithValue) # all TRUE (the one false is due to an empty string)
     
     validationTable
   }
@@ -423,12 +424,13 @@ whichNotValid = # Outputs a list of the lines
     
     line = as.integer(line)
     
-    linesWithValue = sapply(blocks, function(x) which(grepl(pattern, x))) # finds blocks w/ value
-    # linesWithValue_TF = sapply(linesWithValue, ) # returns ALL true
+    linesWithValue_allLines = sapply(blocks, function(x) grepl(pattern, x)) # finds blocks w/ value
+    linesWithValue_justTF = sapply(linesWithValue_allLines, function(x) if (TRUE %in% x){TRUE}else{FALSE})
     
     lines_N_WithValue = sapply(blocks, function(x) grepl(pattern, x[line])) # finds blocks w/ value on line 5
     
-    notValidList = which(linesWithValue != lines_N_WithValue) # all TRUE (the one false is due to an empty string)
+    notValidList = which(linesWithValue_justTF != lines_N_WithValue) # all TRUE (the one false is due to an empty string)
     
     notValidList
   }
+

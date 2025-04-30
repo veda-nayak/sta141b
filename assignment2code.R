@@ -29,10 +29,15 @@ line1_pattern = "^\\[\\*\\*\\] \\[[0-9]*:([0-9]*):[0-9]*\\] ([[:alpha:]| ]*).*"
 snortId_pattern = "\\[[0-9]*:([0-9]*):[0-9]*\\]"
 title_pattern = "([[:alpha:]| ]*)"
 
-validSnort = checkValid(blocks, 1, snortId_pattern)
-validTitle = checkValid(blocks, 1, title_pattern)
+# validSnort = checkValid(blocks, 1, snortId_pattern)
+# validTitle = checkValid(blocks, 1, title_pattern)
 
-# Since we've validated they're all on line 1, we just need to select one of the patterns as our comparison logical vector to make sure the regular experession is sound. 
+validLine1 = sapply(c(snortId_pattern, title_pattern), function(x) checkValid(blocks, 1, x))
+validLine1Pretty = as.data.frame(validLine1)
+
+rownames(validLine1Pretty) <- c("snortIdPattern", "titlePattern")
+colnames(validLine1Pretty) <- c("TRUE")
+
 linesWithLine1Els = sapply(blocks, function(x) grepl(title_pattern, x[1]))
 linesWithLine1RegEx = sapply(blocks, function(x) grepl(line1_pattern, x[1]))
 

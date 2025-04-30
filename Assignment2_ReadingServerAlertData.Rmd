@@ -122,13 +122,44 @@ I noticed that I was getting an extra empty block in my result. I deleted the la
 - I kept getting an extra line at the end. Since I used the character "NA" to fill in missing values, using na.omit() over my dataframe was a suitable way to remove a row with nothing. 
 5. I converted the month, day, proximity, TTL, ID, IpLen, and DgmLen into integers because those are the only numerical variables that will not contain missing values. 
 
+## checkValid()
+
+Use this function to determine if blocks containing a particular pattern are the same as blocks containing the pattern at the expected line. 
+
+1. Make a vector with the block numbers containing the pattern and another containing the block numbers containing the pattern at the expected line. 
+2. Output a TRUE/FALSE table comparing the two vectors. 
+
+## whichNotValid()
+Use this function to determine which blocks containing a particular pattern are the NOT the same as blocks containing the pattern at the expected line. 
+
+1. Make a vector with the block numbers containing the pattern and another containing the block numbers containing the pattern at the expected line.
+2. Output a vector containing lines that do not match up. 
+
 # Validation
 
-## Rational behind function assumptions
+## Validating Regular Expressions Used
 
 ### Line 1
 
+I first used *checkValid()* to confirm that the *SnortID* and *Title* were on line 1. 
+
+```{r}
+validLine1Pretty
+```
+
+Both the SnortID and Title are only found on line 1. 
+
+Since both are only line 1, I selected one of the patterns as the comparison. I wanted to see if the lines containing regular expression I wrote is are the same as those that contain the SnortId / Title, thereby proving the regular expression I wrote is correct. 
+
+```{r}
+validLine1RegEx
+```
+
+Since all values are true, my regular expression works.
+
 ### Line 2
+
+
 
 ### Line 3
 
