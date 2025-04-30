@@ -124,9 +124,23 @@ I noticed that I was getting an extra empty block in my result. I deleted the la
 
 # Validation
 
-## View Dataframes
+## Rational behind function assumptions
+
+### Line 1
+
+### Line 2
+
+### Line 3
+
+### Line 4
+
+### Line 5
+
+### Extra Lines
+
+## Dataframe Validation
 
 
-## Check the number of rows and columns
+### Check the number of rows and columns
 
 *Expected number*

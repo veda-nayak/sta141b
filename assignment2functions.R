@@ -36,7 +36,7 @@ getBlocks = # make all blocks
     
   }
 
-# Extract data from block line 2 -----------------------------------------------
+# Extract data from block line  -----------------------------------------------
 
 extractLine1 = # get the class and priority from a block's line 2
   function(blocks){
@@ -111,7 +111,7 @@ extractLine3 = #
   line3testUnreach = "03/16-07:30:00.060000 192.168.27.25 -> 192.168.202.100" # blocks[[8]][3]
   
   # Day/Month -------------
-  check_day_month_pattern = table(grepl("^([0-9]+)/([0-9]+)-.*", line3s))
+  check_day_month_pattern = table(grepl("^([0-9]+)/([0-9]+)-[^ ]+", line3s))
   day_month_pattern = "^([0-9]+)/([0-9]+)-.*"
   # day_month_test = gsub(day_month_pattern, "\\1;\\2", line3test)
   day_month = sapply(line3s, function(x) gsub(day_month_pattern, "\\1;\\2", x))
@@ -202,6 +202,7 @@ extractLine4 =
   }
 
 # TABLE FOR LINE 5 -------------------------------------------------------------
+
 newLine5 = 
   function(x){
     line5pattern_works = "(.*) Seq: (.*) Ack: (.*) Win: (.*) TcpLen: (.*)"
@@ -211,6 +212,50 @@ newLine5 =
     }
     x
   }
+
+makeNaLine5 = # make missing extra values into "NA"
+  function(x){
+    
+    if (length(x) == 5){
+      x[1] = x[1]
+      x[2] = x[2]
+      x[3] = x[3]
+      x[4] = x[4]
+      x[5] = x[5]
+    }
+    
+    else{
+      x[1] = "NA"
+      x[2] = "NA"
+      x[3] = "NA"
+      x[4] = "NA"
+      x[5] = "NA"
+    }
+    
+    x
+  }
+
+extractLine5 =  
+  function(blocks){
+    
+    line5s = sapply(blocks, function(x) x[5])
+    line5_test = line5s[[2]] # "***AP**F Seq: 0x54831ACE  Ack: 0x328B4920  Win: 0xFA4A  TcpLen: 32"
+    new_line_5 = sapply(line5s, newLine5)
+    new_line_5 <- as.character(new_line_5)
+    line_5_split = sapply(new_line_5, function(x) strsplit(x, split = " ;|;"))
+    line5_df = as.data.frame(t(as.data.frame(sapply(line_5_split, makeNaLine5))))
+    colnames(line5_df) <- c('TCP_flag', "Seq", 'Ack', 'Window', 'TCP_len')
+    line5_df
+  }
+
+# -------------------------------------------------------------------
+
+# newLine5 = 
+#   function(x){
+#     
+#   }
+
+# extractLine5(ll)
 
 makeNaLine5 = # make missing extra values into "NA"
   function(x){
@@ -238,8 +283,11 @@ extractLine5 =
   function(blocks){
     
     line5s = sapply(blocks, function(x) x[5])
-    line5_test = line5s[[2]] # "***AP**F Seq: 0x54831ACE  Ack: 0x328B4920  Win: 0xFA4A  TcpLen: 32"
-    new_line_5 = sapply(line5s, newLine5)
+    # line5_test = line5s[[2]] # "***AP**F Seq: 0x54831ACE  Ack: 0x328B4920  Win: 0xFA4A  TcpLen: 32"
+   
+    line5pattern = "(.*)(Seq: (.*))* Ack: (.*) Win: (.*) TcpLen: (.*).*"
+    
+    line5grep = sapply(line5s, function(x) gsub(line5pattern, "\\1;\\2;\\3;\\4;\\5;\\6", x))
     new_line_5 <- as.character(new_line_5)
     line_5_split = sapply(new_line_5, function(x) strsplit(x, split = " ;|;"))
     line5_df = as.data.frame(t(as.data.frame(sapply(line_5_split, makeNaLine5))))
@@ -281,8 +329,7 @@ extractExtraLines =
   }
 
 
-# The final DF -----------------------------------------------------------------
-# (to the tune of the final countdown)
+# Find the lines ---------------------------------------------------------------
 
 getLines= 
   function(fn){
@@ -294,7 +341,9 @@ getLines=
     ll
     
   }
-  
+
+# The final DF -----------------------------------------------------------------
+# (to the tune of the final countdown)
 
 makeDF = 
   function(fn){
@@ -319,7 +368,7 @@ makeDF =
     
    
     commonDf <- cbind(line1df, line2df, line3df, line4df, line5df, extradf)
-    commonDf <- na.omit(commonDf) # we can do this because I labeled all missing values as "NA" not NA
+    # commonDf <- na.omit(commonDf) # we can do this because I labeled all missing values as "NA" not NA
                                   # it will just remove lines created by accident
     
     # Add a column for the name of the file
@@ -339,4 +388,47 @@ makeDF =
     
   }
 
+# Find the urls ---------------------------------------------------------------
 
+getUrls= 
+  function(fn){
+    
+    ll = getLines(fn)
+    
+    pattern = ".*(htt[p+|s]:\\/\\/[^ ]+)].*"
+    urlsPos = which(grepl(pattern, ll))
+    urlsLines = sapply(urlsPos, function(x) ll[x])
+    urls = sapply(urlsLines, function(x) gsub(pattern, "\\1", x))
+    urls
+    
+  }
+
+# Validation Table -------------------------------------------------------------
+
+checkValid = # Is line N the only line that contains my value
+  function(blocks, line, pattern){
+    line = as.integer(line)
+    
+    linesWithValue = sapply(blocks, function(x) which(grepl(pattern, x))) # finds blocks w/ value
+
+    lines_N_WithValue = sapply(blocks, function(x) grepl(pattern, x[line])) # finds blocks w/ value on line 5
+    
+    validationTable = table(linesWithValue == lines_N_WithValue) # all TRUE (the one false is due to an empty string)
+    
+    validationTable
+  }
+
+whichNotValid = # Outputs a list of the lines
+  function(blocks, line, pattern){
+    
+    line = as.integer(line)
+    
+    linesWithValue = sapply(blocks, function(x) which(grepl(pattern, x))) # finds blocks w/ value
+    # linesWithValue_TF = sapply(linesWithValue, ) # returns ALL true
+    
+    lines_N_WithValue = sapply(blocks, function(x) grepl(pattern, x[line])) # finds blocks w/ value on line 5
+    
+    notValidList = which(linesWithValue != lines_N_WithValue) # all TRUE (the one false is due to an empty string)
+    
+    notValidList
+  }
