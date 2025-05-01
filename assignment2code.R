@@ -29,9 +29,6 @@ line1_pattern = "^\\[\\*\\*\\] \\[[0-9]*:([0-9]*):[0-9]*\\] ([[:alpha:]| ]*).*"
 snortId_pattern = "\\[[0-9]*:([0-9]*):[0-9]*\\]"
 title_pattern = "([[:alpha:]| ]*)"
 
-# validSnort = checkValid(blocks, 1, snortId_pattern)
-# validTitle = checkValid(blocks, 1, title_pattern)
-
 validLine1 = sapply(c(snortId_pattern, title_pattern), function(x) checkValid(blocks, 1, x))
 validLine1Pretty = as.data.frame(validLine1)
 
@@ -44,17 +41,20 @@ linesWithLine1RegEx = sapply(blocks, function(x) grepl(line1_pattern, x[1]))
 validLine1RegEx = table(linesWithLine1Els == linesWithLine1RegEx) # all are true
 
 ## Line 2 ---------------------------------------------------
-line1s = sapply(blocks, function(x) x[1])
 
-### Classi ------
-validClassi = checkValid(blocks, 2, "Classification:")
 
-### Priority ------
-validPriority = checkValid(blocks, 2, "Priority:")
+validLine2 = sapply(c("Classification:", "Priority:"), function(x) checkValid(blocks, 2, x))
+validLine2Pretty = as.data.frame(validLine2)
+
+rownames(validLine2Pretty) <- c("'Classification:'", "'Priority:'")
+colnames(validLine2Pretty) <- c("TRUE")
 
 ### Since the blocks that contain "Classification" and "Proximity" are the same as those that contain "Classification" and "Proximity" on line 2, my assumption holds. Next, I wanted to see if classification always came before proximity. 
-line2s = sapply(blocks, function(x) x[2])
-regExMatch_ClassiProxi = table(sapply(line2s, function(x) grepl("\\[Classification: (.*)\\] \\[Priority:", x)))
+
+linesWithLine2Els = sapply(blocks, function(x) grepl("Classification:", x[2]))
+linesWithLine2RegEx = sapply(blocks, function(x) grepl("\\[Classification: (.*)\\] \\[Priority:", x[2]))
+
+validLine2RegEx = table(linesWithLine2Els == linesWithLine2RegEx) # all are true
 
 
 ## Line 3 ---------------------------------------------------
@@ -63,15 +63,12 @@ day_month_pattern = "^([0-9]+)/([0-9]+)-.*"
 time_pattern = "[0-9]+/[0-9]+-([0-9]+:[0-9]+:[0-9]+.[0-9]*) .*"
 ip_pattern = "[0-9]+:[0-9]+:[0-9]+.[0-9]* (.*) +-> +(.*)"
 
-### Day + Month ------
 
-validDayMonth = checkValid(blocks, 3, day_month_pattern)
+validLine3 = sapply(c(day_month_pattern, time_pattern, ip_pattern), function(x) checkValid(blocks, 3, x))
+validLine3Pretty = as.data.frame(validLine3) # All TRUE
 
-### Time ------
-validTime = checkValid(blocks, 3, time_pattern)
-
-### Day + Month ------
-validIp = checkValid(blocks, 3, ip_pattern)
+rownames(validLine3Pretty) <- c("day_month_pattern", "time_pattern", "ip_pattern")
+colnames(validLine3Pretty) <- c("TRUE")
 
 
 # I can see if # lines w/ TTL == # lines that follow the reg ex I wrote
@@ -86,9 +83,10 @@ id_pattern = "ID:([0-9]*)"
 iplen_pattern = "IpLen:([0-9]*)"
 dgmlen_pattern = "DgmLen:([0-9]*)"
 
-validLine4Els = sapply(c(protocol_pattern, ttl_pattern, tos_pattern, id_pattern, id_pattern, iplen_pattern, dgmlen_pattern), function(x) checkValid(blocks, 4, x))
+validLine4Els = sapply(c(protocol_pattern, ttl_pattern, tos_pattern, id_pattern,iplen_pattern, dgmlen_pattern), function(x) checkValid(blocks, 4, x))
+validLine4Pretty = as.data.frame(validLine4Els)
+rownames(validLine4Pretty) <- c("Protocol", "TTL", "TOS", "ID", "IpLen", "DgmLen")
 
-# Since we've validated they're all on line 4, we just need to select one of the patterns as our comparison logical vector.
 linesWithLine4Els = sapply(blocks, function(x) grepl(ttl_pattern, x[4]))
 linesWithLine4RegEx = sapply(blocks, function(x) grepl(line4pattern, x[4]))
 
@@ -96,7 +94,7 @@ validLine4RegEx = table(linesWithLine4Els == linesWithLine4RegEx) # all TRUE
 
 ## Line 5 ---------------------------------------------------
 line5pattern_1 = "(.*) Seq: (.*) Ack: (.*) Win: (.*) TcpLen: (.*)"
-line5pattern_2 = "(.*)(Seq: (.*))* Ack: (.*) Win: (.*) TcpLen: (.*).*"
+# line5pattern_2 = "(.*)(Seq: (.*))* Ack: (.*) Win: (.*) TcpLen: (.*).*"
 # tcpFlag_pattern # can't validate this because the regex is too general so we nede to validate after we validate the rest
 seq_pattern = "Seq: (.*)"
 ack_pattern = "Ack: (.*)"
@@ -104,32 +102,49 @@ win_pattern = "Win: (.*)"
 tcplen_pattern = "TcpLen: (.*)"
 
 validLine5Els = sapply(c(seq_pattern, ack_pattern, win_pattern, tcplen_pattern), function(x) checkValid(blocks, 5, x))
-# From this, we can see two things:
-# 1. Elements "Ack:", "Win:", and "TcpLen:" are all on line 5 (since they all lines containing those values were the same as the lines containing those values on line 5)
-# 2. Element "Seq:" was not only on line 5. 3262 lines contained "Seq:" which were not on line 5
-        # - I wanted to further investigate these. 
 
+validLine5Pretty = as.data.frame(validLine5Els)
+validLine5Pretty <- validLine5Pretty[,c(1, 2, 4, 6, 8)]
+validLine5Pretty <- as.data.frame(t(validLine5Pretty))
+validLine5Pretty <- validLine5Pretty[2:5,]
+validLine5Pretty$V1 <- as.integer(validLine5Pretty)
+rownames(validLine5Pretty) <- c("Sequence", "Ack", "Window", "TcpLen")
+validLine5Pretty[2:4, 1] <- 0 
+
+## What's happening with Seq: -----------
 seqNotLine5 = whichNotValid(blocks, 5, seq_pattern)
-lines_seqNotLine5 = lapply(seqNotLine5, function(x) blocks[seqNotLine5])
+lines_seqNotLine5 = lapply(seqNotLine5, function(x) blocks[x])
 
-# I looked at a couple of the corresponding blocks, and I saw that some of them contained "DESTINATION UNREACHABLE". I wanted to see if that was the same for all of the blocks that don't match.
-lines_WithDestinationunreachable = table(sapply(lines_seqNotLine5, function(x) grepl("DESTINATION UNREACHABLE", x)))
+lines_WithTypeNoLine5Els = as.data.frame(table(sapply(lines_seqNotLine5, function(x) grepl("Type:", x) == TRUE & grepl("Ack:", x) == FALSE & grepl("Win:", x) == FALSE & grepl("TcpLen:", x) == FALSE)))
 
+ip_no_port= " [0-9]+.[0-9]+.[0-9]+.[0-9]+"
+ip_with_port = " [0-9]+.[0-9]+.[0-9]+.[0-9]+:[0-9]+"
 
-# -----
+lines_WithMiscActivity = as.data.frame(table(sapply(lines_seqNotLine5, function(x) grepl("Misc activity", x))))
+lines_NoPort = as.data.frame(table(sapply(lines_seqNotLine5, function(x) grepl(ip_no_port, unlist(x)[3]))))
+lines_WithPort = as.data.frame(table(sapply(lines_seqNotLine5, function(x) grepl(ip_with_port, unlist(x)[3]))))
+
+noSeqSummaryTable = rbind(lines_WithTypeNoLine5Els, lines_WithMiscActivity, lines_NoPort, lines_WithPort)
+rownames(noSeqSummaryTable) <- c("Blocks With 'Type:' on Line 5 & Missing Remaining Line5 Elements", "Blocks with Misc Activty", "IP-NoPort", "IP-WithPort")
 
 # Since we've validated they're all on line 5, we just need to select one of the patterns as our comparison logical vector to explore these affects. 
-linesWithLine5Els = sapply(blocks, function(x) grepl(seq_pattern, x[5]))
+
+# THIS PART IS UNHAPPY
+linesWithLine5Els = sapply(blocks, function(x) grepl(ack_pattern, x[5]))
 
 linesWithSeq = sapply(blocks, function(x) grepl(seq_pattern, x[5]))
 
 linesWithLine5RegEx_1 = sapply(blocks, function(x) grepl(line5pattern_1, x[5]))
-linesWithLine5RegEx_2 = sapply(blocks, function(x) grepl(line5pattern_2, x[5]))
+# linesWithLine5RegEx_2 = sapply(blocks, function(x) grepl(line5pattern_2, x[5]))
 
-validLine5RegEx = table(linesWithLine5Els == linesWithLine5RegEx) # all TRUE
+# validLine5RegEx_1_vs_2 = table(linesWithLine5RegEx_1 == linesWithLine5RegEx_2) # all TRUE therefore both are equal
+
+validLine5RegEx = table(linesWithLine5Els == linesWithLine5RegEx_2) # all TRUE
 
 
 ## Extra Lines ---------------------------------------------------
+
+# compare block lengths, if block length > 5 then extra lines column should not be empty
 
 
 # Validate Classes -------------------------------------------------------------
@@ -191,11 +206,12 @@ pattern = ".*(htt[p+|s]:\\/\\/.*)].*"
 urlsTfTable_0 = table(grepl(pattern, getLines(fns[1]))) 
 #I made this table as I was creating the function to see if the resulting values
 # based on my regular expressions seemed logical
-urlsTfTable_0[2] == length(urls_0) # output = TRUE
+urls_valid_0 = (urlsTfTable_0[2] == length(urls_0)) # output = TRUE so correct # urls were extracted into data table
 
 urlsTfTable_1 = table(grepl(pattern, getLines(fns[2]))) 
-urlsTfTable_1[2] == length(urls_1) # output = TRUE
+urls_valid_1 = (urlsTfTable_1[2] == length(urls_1)) # output = TRUE so correct # urls were extracted into data table
 
+urls_validity = as.data.frame(c(urls_valid_0, urls_valid_1))
 
 # Notes from class -------------------------------------------------------------
 

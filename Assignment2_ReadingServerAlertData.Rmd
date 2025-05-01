@@ -149,7 +149,8 @@ validLine1Pretty
 
 Both the SnortID and Title are only found on line 1. 
 
-Since both are only line 1, I selected one of the patterns as the comparison. I wanted to see if the lines containing regular expression I wrote is are the same as those that contain the SnortId / Title, thereby proving the regular expression I wrote is correct. 
+Since both are only line 1, I selected one of the patterns as the comparison. Since they're all on line 4, I selected just one of the patterns as the comparison logical vector to confirm the regular expression is also true. 
+I wanted to see if the lines containing regular expression I wrote is are the same as those that contain the Title, thereby proving the regular expression I wrote is correct. 
 
 ```{r}
 validLine1RegEx
@@ -159,15 +160,75 @@ Since all values are true, my regular expression works.
 
 ### Line 2
 
+I used *checkValid()* to confirm that the *Classification* and *Priority* were on line 2.
+
+```{r}
+validLine2Pretty
+```
+
+Since everything came back as true, both are found on line 2. 
+
+I then wanted to confirm my assumption that classification comes before priority is always correct. I did this by validating the regular expression I used to extract data. Since they're all on line 2, I selected just one of the patterns as the comparison logical vector to confirm the regular expression is also true. 
+
+```{r}
+validLine2RegEx
+```
 
 
 ### Line 3
 
+
+I used *checkValid()* to confirm that the *Day/Month*, *Time*, and *IP* were on line 3.
+
+```{r}
+validLine3Pretty
+```
+
+Since everything came back as true, all values are found on line 3. 
+
 ### Line 4
+
+I used *checkValid()* to confirm that the *Protocol*, *TTL*, *TOS*, *ID*, *IpLen* and *DgmLen* were on line 4.
+
+```{r}
+validLine4Pretty
+```
+
+Since all of them yielded true, these elements are only on line 4. Since they're all on line 4, I selected just one of the patterns as the comparison logical vector to confirm the regular expression is also true. 
+
+
+```{r}
+validLine4RegEx
+```
+
+The regular experession is true for all. 
 
 ### Line 5
 
+I used *checkValid()* to confirm that the *Sequence*, *Acknowledgment*, *Window*, and *TcpLen* were on line 5. 
+
+```{r}
+validLine5Pretty
+```
+
+*Note: I manually changed the FALSE values for the Ack, Win, and TcpLen rows to "0" based on information I saw on the validLine5Els list.*
+
+From this, we can see two things:
+
+1. Elements "Ack:", "Win:", and "TcpLen:" are all on line 5 (since they all lines containing those values were the same as the lines containing those values on line 5)
+2. Element "Seq:" was not only on line 5. 3262 lines contained "Seq:" which were not on line 5. I wanted to further investigate the blocks where "Seq:" was found on lines that were not line 5.
+
+The lines that contained "Seq:" on lines other than line 5 also did not contain any of the other elements we need to extract (Acknowledgment, Window, and TcpLength). They contain other pieces of information instead, such as "Type". They are related to "Misc activity". While they contain an IP address, they do not contain a port for the IP value.
+
+```{r}
+noSeqSummaryTable
+```
+
+
+
 ### Extra Lines
+
+
 
 ## Dataframe Validation
 
