@@ -93,7 +93,7 @@ extractLine2 = # get the class and priority from a block's line 2
 
 makeNaLine3 = # make missing port values into "NA"
   function(x){
-    if (length(x) != 2){
+    if (length(x) != 2 | x[2] == ""){
       x[1] = x[1]
       x[2] = "NA"}
     else{
@@ -248,84 +248,16 @@ extractLine5 =
     line5_df
   }
 
-# -------------------------------------------------------------------
-
-# newLine5 = 
-#   function(x){
-#     
-#   }
-
-# extractLine5(ll)
-
-makeNaLine5 = # make missing extra values into "NA"
-  function(x){
-    
-    if (length(x) == 5){
-      x[1] = x[1]
-      x[2] = x[2]
-      x[3] = x[3]
-      x[4] = x[4]
-      x[5] = x[5]
-      }
-    
-    else{
-      x[1] = "NA"
-      x[2] = "NA"
-      x[3] = "NA"
-      x[4] = "NA"
-      x[5] = "NA"
-    }
-    
-    x
-  }
-
-extractLine5 =  
-  function(blocks){
-    
-    line5s = sapply(blocks, function(x) x[5])
-    # line5_test = line5s[[2]] # "***AP**F Seq: 0x54831ACE  Ack: 0x328B4920  Win: 0xFA4A  TcpLen: 32"
-   
-    line5pattern = "(.*)(Seq: (.*))* Ack: (.*) Win: (.*) TcpLen: (.*).*"
-    
-    line5grep = sapply(line5s, function(x) gsub(line5pattern, "\\1;\\2;\\3;\\4;\\5;\\6", x))
-    new_line_5 <- as.character(new_line_5)
-    line_5_split = sapply(new_line_5, function(x) strsplit(x, split = " ;|;"))
-    line5_df = as.data.frame(t(as.data.frame(sapply(line_5_split, makeNaLine5))))
-    colnames(line5_df) <- c('TCP_flag', "Seq", 'Ack', 'Window', 'TCP_len')
-    line5_df
-  }
-
 # Extra Lines ------------------------------------------------------------------
-
-# makeNaExtraLines = # no longer needed(I think), but I am scared to delete lines
-#   function(x){
-#     
-#     if (x[8] == NA){
-#       x[1] = x[1]
-#       x[2] = x[2]
-#       x[3] = x[3]
-#       x[4] = x[4]
-#       x[5] = x[5]
-#       x[6] = x[6]
-#     }
-#     
-#     else{
-#       x[1] = "NA"
-#       x[2] = "NA"
-#       x[3] = "NA"
-#       x[4] = "NA"
-#       x[5] = "NA"
-#     }
-#     
-#     x
-#   }
-
 extractExtraLines = 
   function(blocks){
-    # block_lengths = sapply(blocks, function(x) length(x)) # 4 - 11
-    extra_lines = sapply(blocks, function(x) x[-c(1, 2, 3, 4, 5)]) # 6 lines in the new situation
+    
+    blocks_unlisted = sapply(blocks, unlist)
+    
+    extra_lines = sapply(blocks_unlisted, function(x) x[-c(1:5)]) # 6 lines in the new situation
     extra_lines_single = sapply(extra_lines, function(x) paste(x, collapse = "\n"))
     extra_lines_df = as.data.frame(extra_lines_single)
+    
   }
 
 
@@ -372,6 +304,7 @@ makeDF =
                                   # it will just remove lines created by accident
     
     # Add a column for the name of the file
+    
     without_ext = tools::file_path_sans_ext(fn)
     
     commonDf$filename <- without_ext
@@ -394,8 +327,8 @@ getUrls=
   function(fn){
     
     ll = getLines(fn)
-    
-    pattern = ".*(htt[p+|s]:\\/\\/[^ ]+)].*"
+
+    pattern = ".*( htt[p+|s]:\\/\\/[^ ]+)].*"
     urlsPos = which(grepl(pattern, ll))
     urlsLines = sapply(urlsPos, function(x) ll[x])
     urls = sapply(urlsLines, function(x) gsub(pattern, "\\1", x))
@@ -433,4 +366,29 @@ whichNotValid = # Outputs a list of the lines
     
     notValidList
   }
+
+
+whichPortNotNa = 
+  function(df, x){
+    
+    check_9 = df[x, 9]  != "NA"
+    check_11 =  df[x, 11]  != "NA"
+    
+    if(check_9 == check_11){TRUE}else{FALSE}
+    
+  }
+
+whichLine5NotNa = 
+  function(df, line){
+    
+    checkNa = sapply(c(19:23), function(x) (df[line, x] != "NA") )
+    
+    if(checkNa[1] == checkNa[2] &
+      checkNa[1] == checkNa[2] &
+      checkNa[1] == checkNa[3] &
+      checkNa[1] == checkNa[4] &
+      checkNa[1] == checkNa[5]){TRUE}else{FALSE}
+  }
+
+
 

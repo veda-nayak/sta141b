@@ -16,7 +16,7 @@ source(paste(dir, "/assignment2code.R", sep=''))
 # Overview
 The goal of this assignment is to create a dataframe containing information from server alert data. 
 
-The final data table should include 23 columns:
+The final data table should include 25 columns:
 
 - Title of Event
 - Classification
@@ -44,7 +44,7 @@ The final data table should include 23 columns:
 
 # Functions
 
-To more easily organize the information, created functions to extract the information from each line.
+To more easily organize the information, I created functions to extract the information from each line.
 
 ## getblocks()
 
@@ -135,6 +135,11 @@ Use this function to determine which blocks containing a particular pattern are 
 1. Make a vector with the block numbers containing the pattern and another containing the block numbers containing the pattern at the expected line.
 2. Output a vector containing lines that do not match up. 
 
+## whichPortNotNa() & whichLine5NotNa
+
+Checks if a given column is not "NA" and if the corresponding columns that should also not be "NA" are as such. 
+
+
 # Validation
 
 ## Validating Regular Expressions Used
@@ -218,21 +223,82 @@ From this, we can see two things:
 1. Elements "Ack:", "Win:", and "TcpLen:" are all on line 5 (since they all lines containing those values were the same as the lines containing those values on line 5)
 2. Element "Seq:" was not only on line 5. 3262 lines contained "Seq:" which were not on line 5. I wanted to further investigate the blocks where "Seq:" was found on lines that were not line 5.
 
-The lines that contained "Seq:" on lines other than line 5 also did not contain any of the other elements we need to extract (Acknowledgment, Window, and TcpLength). They contain other pieces of information instead, such as "Type". They are related to "Misc activity". While they contain an IP address, they do not contain a port for the IP value.
 
 ```{r}
 noSeqSummaryTable
 ```
 
 
+The lines that contained "Seq:" on lines other than line 5 also did not contain any of the other elements we need to extract (Acknowledgment, Window, and TcpLength). They contain other pieces of information instead, such as "Type". They are related to "Misc activity". While they contain an IP address, they do not contain a port for the IP value.
+
 
 ### Extra Lines
 
+I compared the length of the blocks and the value of the corresponding found extra lines. If the block has a length less than or equal to 5, it should havve an empty string as its corresponding extra line. I used this conditional to generate the following table. 
 
+```{r}
+verify_extra_lines
+```
+
+
+### Urls Extraction
+
+```{r}
+urls_validity
+```
+
+I extracted are the correct number of urls that follow the pattern. 
 
 ## Dataframe Validation
 
 
-### Check the number of rows and columns
+### Validate Dataframe and Column Classes
 
-*Expected number*
+
+```{r}
+class_0_1
+
+classes_0_1
+
+class_urls_0_1
+```
+
+*Note "_0" refers to the file ""alert.full.maccdc2012_00000.pcap" ending in "00000". "_1" refers to the file ending in "00001".*
+
+All classes are as expected.
+
+### Check the dimensions
+
+```{r}
+valid_dims
+```
+
+Both have 25 variables, which is what I expected. 
+The number of observations corresponds ot the number of blocks. 
+
+The dimensions of both dataframes are correct. 
+
+## Check if Source and Destination port values align
+
+I wanted to confirm if both the following condition and its inverse is true: 
+
+- If the source port is "NA", the destination port is "NA"
+- If column 19 is NA, columns 20-23 are also "NA"
+
+```{r}
+compareNas
+```
+
+All values in the dataframe "00000" follow this pattern. I am assuming the other dataframe follows the same pattern.
+
+# Conclusion
+
+I successfully created the dataframe for the dataset containing alerts information. I also successfully extracted the URLs into its own vector. 
+
+# Acknowledgments
+
+Support for Regular Expression generation: https://cran.r-project.org/web/packages/stringr/vignettes/regular-expressions.html
+
+Getting a filename without an extension: https://stackoverflow.com/questions/29113973/get-filename-without-extension-in-r
+
+Collapse the elements of a list onto one line: https://stackoverflow.com/questions/9314328/how-to-collapse-a-list-of-characters-into-a-single-string-in-r
