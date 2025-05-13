@@ -1,0 +1,36 @@
+---
+title: "Assignment3: Baseball and SQL"
+author: "Veda Nayak"
+date: "2025-04-18"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+dir = "C:/cygwin64/home/vedan/Code/sta141b"
+setwd(dir)
+
+source(paste(dir, "/assignment3code.R", sep=''))
+```
+
+# Question 1
+
+## Number of teams in the database
+I assumed that since we are looking at team information, I would need to look in the "Teams" table. I first looked at the columns in the table. 
+
+```{r}
+dbListFields(db, "Teams")
+```
+
+
+## Number of teams in 2022List the names of the teams for 2022, 
+*Include team name, league and division, total number of games, # of games they won and lost*
+*Group the results by league, division and games won*
+
+
+Put the question again in the report, explain what you're doing with the query
+
+# Acknowledgments
+Date and Time Functions Support: https://sqlite.org/lang_datefunc.html
+CASE WHEN:
+SUM(): https://www.w3schools.com/sql/sql_sum.asp
