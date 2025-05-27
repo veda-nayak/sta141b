@@ -86,7 +86,7 @@ headers = c(
   'accept' = '*/*',
   'accept-language' = 'en-US,en;q=0.9',
   'accept-encoding' = 'gzip, deflate, br, zstd',
-  'authorization' = 'Bearer f8eea7876c3f3ba38b2980bd52aa864fa0eba1e9365bd9f67c8b11f35e9b1366',
+  'authorization' = 'Bearer ___',
   'origin' = 'https://jobs-in-data.com'
 )
 
